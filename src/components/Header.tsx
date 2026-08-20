@@ -1,21 +1,14 @@
 import { config } from "../config";
 import { formatKyiv, relativeFromNow } from "../lib/format";
-import type { DataSource, StatusPayload } from "../types";
+import type { StatusPayload } from "../types";
 
 type HeaderProps = {
   payload: StatusPayload | null;
-  source: DataSource | null;
   loading: boolean;
   onRefresh: () => void;
 };
 
-function sourceLabel(source: DataSource | null): string {
-  if (source === "github") return "GitHub · status.json";
-  if (source === "snapshot") return "локальный снимок";
-  return "…";
-}
-
-export function Header({ payload, source, loading, onRefresh }: HeaderProps) {
+export function Header({ payload, loading, onRefresh }: HeaderProps) {
   return (
     <header className="top">
       <div className="top-brand">
@@ -30,12 +23,6 @@ export function Header({ payload, source, loading, onRefresh }: HeaderProps) {
             {payload ? (
               <em> · {relativeFromNow(payload.last_update)}</em>
             ) : null}
-          </strong>
-        </div>
-        <div>
-          <span className="label">Источник</span>
-          <strong className={source === "github" ? "live" : undefined}>
-            {sourceLabel(source)}
           </strong>
         </div>
       </div>

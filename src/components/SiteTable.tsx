@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatMs, formatRowCount } from "../lib/format";
 import { hostnameOf, nsReason, sslDaysLeft, sslLabel, SSL_WARN_DAYS, statusKind, statusKindLabel, statusLabel, zoneOf } from "../lib/site";
 import { filterAndSortRows, nextSort } from "../lib/table";
 import type { Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
+
+const MOBILE_PAGE = 10;
+const MOBILE_TABLE = "(max-width: 720px)";
 
 const FILTERS: TableFilter[] = ["all", "200", "503", "down", "ns", "ssl"];
 
@@ -37,11 +41,21 @@ export function SiteTable({
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("duration");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const compact = useMediaQuery(MOBILE_TABLE);
+  const listKey = `${filter}|${query}|${sortKey}|${sortDir}`;
+  const [paging, setPaging] = useState({ listKey, shown: MOBILE_PAGE });
+  if (paging.listKey !== listKey) {
+    setPaging({ listKey, shown: MOBILE_PAGE });
+  }
+  const shown = paging.listKey === listKey ? paging.shown : MOBILE_PAGE;
 
   const visible = useMemo(
     () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
     [rows, query, filter, sortKey, sortDir],
   );
+
+  const pageRows = compact ? visible.slice(0, shown) : visible;
+  const remaining = compact ? Math.max(0, visible.length - pageRows.length) : 0;
 
   function toggleSort(key: SortKey) {
     const next = nextSort(sortKey, sortDir, key);
@@ -88,7 +102,11 @@ export function SiteTable({
             ))}
           </div>
         </div>
-        <p className="count">{formatRowCount(visible.length)}</p>
+        <p className="count">
+          {compact && remaining > 0
+            ? `${pageRows.length} из ${visible.length}`
+            : formatRowCount(visible.length)}
+        </p>
       </div>
 
       <div className="table-scroll">
@@ -130,12 +148,27 @@ export function SiteTable({
             </tr>
           </thead>
           <tbody>
-            {visible.map((row, index) => (
+            {pageRows.map((row, index) => (
               <SiteRowView key={`${row.url}-${index}`} row={row} />
             ))}
           </tbody>
         </table>
       </div>
+      {remaining > 0 ? (
+        <div className="table-more">
+          <button
+            type="button"
+            onClick={() =>
+              setPaging((prev) => ({
+                listKey,
+                shown: (prev.listKey === listKey ? prev.shown : MOBILE_PAGE) + MOBILE_PAGE,
+              }))
+            }
+          >
+            Загрузить ещё {Math.min(MOBILE_PAGE, remaining)}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

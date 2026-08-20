@@ -8,14 +8,13 @@ import type { TableFilter } from "./types";
 
 /** Корень дашборда. Новые блоки подключайте рядом с NsStrip / FleetOverview. */
 export default function App() {
-  const { payload, metrics, source, error, loading, refresh } = useFleetStatus();
+  const { payload, metrics, error, loading, refresh } = useFleetStatus();
   const [filter, setFilter] = useState<TableFilter>("all");
 
   return (
     <div className="shell">
       <Header
         payload={payload}
-        source={source}
         loading={loading}
         onRefresh={() => void refresh()}
       />

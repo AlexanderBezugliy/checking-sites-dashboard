@@ -138,18 +138,9 @@ h2 {
   color: var(--muted);
 }
 
-.live::before {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 8px;
-  border-radius: 50%;
-  background: var(--ok);
-}
-
 .chips button,
-.ns-problems-head button {
+.ns-problems-head button,
+.table-more button {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--line);
@@ -727,6 +718,15 @@ h2 {
   overscroll-behavior: contain;
 }
 
+.table-more {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.table-more button {
+  width: 100%;
+}
+
   table {
     width: 100%;
     min-width: 760px;
@@ -855,7 +855,8 @@ tr.down td {
     animation-name: grow-x;
   }
 
-  .live::before {
+  .legend i,
+  .status i {
     animation: pulse 2.8s var(--ease) infinite;
   }
 }
@@ -901,7 +902,8 @@ tr.down td {
   }
 
   .chips button:hover,
-  .ns-problems-head button:hover {
+  .ns-problems-head button:hover,
+  .table-more button:hover {
     border-color: var(--muted);
   }
 
@@ -917,6 +919,7 @@ tr.down td {
 @media (pointer: coarse) {
   .chips button,
   .ns-problems-head button,
+  .table-more button,
   .btn-refresh {
     min-height: 44px;
   }
@@ -1027,7 +1030,7 @@ tr.down td {
   .top-meta {
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px 16px;
     align-items: start;
   }
