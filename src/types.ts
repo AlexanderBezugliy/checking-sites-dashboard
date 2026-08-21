@@ -21,6 +21,8 @@ export type RedirectInfo = {
   foreign: boolean;
 } | null;
 
+export type NsMatch = true | false | null;
+
 export type SiteRow = {
   url: string;
   status: HttpStatus;
@@ -31,6 +33,10 @@ export type SiteRow = {
   ssl?: SslInfo;
   redirect?: RedirectInfo;
   error?: string;
+  /** Эталон NS1+NS2 с монитора. Нет сверки — `[]`. */
+  ns_expected?: string[];
+  /** Результат сверки множеств NS. Нет поля / нет эталона — как `null`. */
+  ns_match?: NsMatch;
 };
 
 export type StatusPayload = {
@@ -65,6 +71,13 @@ export type NsProblem = {
   nameservers: string[];
 };
 
+export type NsMismatch = {
+  url: string;
+  host: string;
+  expected: string[];
+  live: string[];
+};
+
 export type Metrics = {
   total: number;
   alive: number;
@@ -87,10 +100,23 @@ export type Metrics = {
   nsProviders: NamedCount[];
   nsOk: number;
   nsProblems: NsProblem[];
+  nsMatchOk: number;
+  nsMatchBad: number;
+  nsMatchSkip: number;
+  nsMismatches: NsMismatch[];
   slowest: SiteRow[];
   duplicateUrls: number;
 };
 
-export type TableFilter = "all" | "200" | "503" | "down" | "ns" | "ssl";
+export type TableFilter =
+  | "all"
+  | "200"
+  | "503"
+  | "down"
+  | "ns"
+  | "nsok"
+  | "nsbad"
+  | "nsskip"
+  | "ssl";
 export type SortKey = "host" | "status" | "duration" | "zone" | "ssl";
 export type SortDir = "asc" | "desc";

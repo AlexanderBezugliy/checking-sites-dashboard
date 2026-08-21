@@ -1,14 +1,7 @@
-import { NsStrip } from "./NsStrip";
 import { httpMixParts } from "../lib/metrics";
 import type { Metrics } from "../types";
 
-export function KpiGrid({
-  metrics,
-  onShowNsProblems,
-}: {
-  metrics: Metrics;
-  onShowNsProblems: () => void;
-}) {
+export function KpiGrid({ metrics }: { metrics: Metrics }) {
   const nsFailed = metrics.nsProblems.length;
   const mix = httpMixParts(metrics);
   const troubled = metrics.failed + nsFailed;
@@ -67,8 +60,6 @@ export function KpiGrid({
           ) : null}
         </div>
       </article>
-
-      <NsStrip metrics={metrics} onShowProblems={onShowNsProblems} />
     </section>
   );
 }

@@ -139,7 +139,7 @@ h2 {
 }
 
 .chips button,
-.ns-problems-head button,
+.ns-issues-head button,
 .table-more button {
   background: transparent;
   color: var(--text);
@@ -182,7 +182,7 @@ h2 {
 
 .summary {
   display: grid;
-  grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.2fr) minmax(200px, 1fr);
+  grid-template-columns: minmax(180px, 0.9fr) minmax(0, 1.4fr);
   gap: 12px;
   align-items: stretch;
   margin-top: clamp(16px, 3vw, 24px);
@@ -343,12 +343,11 @@ h2 {
 }
 
 .ns-strip {
-  display: grid;
-  grid-template-columns: 1fr;
-  align-content: start;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   min-width: 0;
-  margin: 0;
+  margin-top: 16px;
   padding: 18px 20px 20px;
   background: var(--bg-2);
   border: 1px solid var(--line);
@@ -359,18 +358,82 @@ h2 {
 }
 
 .ns-strip.alert {
-  background: var(--down-bg);
-  border-color: color-mix(in srgb, var(--down) 45%, var(--line));
+  border-color: color-mix(in srgb, var(--down) 35%, var(--line));
   box-shadow: inset 4px 0 0 var(--down);
+}
+
+.ns-strip.warn {
+  border-color: color-mix(in srgb, var(--cloak) 40%, var(--line));
+  box-shadow: inset 4px 0 0 var(--cloak);
+}
+
+.ns-top {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) auto minmax(180px, 1fr);
+  gap: 16px 24px;
+  align-items: start;
 }
 
 .ns-status {
   margin: 0;
-  font-size: 15px;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 .ns-status.ok {
   color: var(--ok);
+}
+
+.ns-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-content: start;
+}
+
+.ns-stats li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 88px;
+  padding: 8px 12px;
+  background: var(--bg-3);
+}
+
+.ns-stats span {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.ns-stats b {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.ns-stats .is-ok {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.ns-stats .is-ok span,
+.ns-stats .is-down span {
+  color: inherit;
+}
+
+.ns-stats .is-down {
+  color: var(--down);
+  background: var(--down-bg);
 }
 
 .ns-providers {
@@ -378,16 +441,20 @@ h2 {
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
+  align-content: start;
 }
 
 .ns-providers li {
-  display: flex;
+  display: inline-flex;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-3);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .ns-providers span {
@@ -395,59 +462,95 @@ h2 {
   overflow-wrap: anywhere;
 }
 
-.ns-quiet {
-  grid-column: 1 / -1;
-  margin: 0;
+.ns-providers em {
+  font-style: normal;
   color: var(--muted);
-  font-size: 12px;
 }
 
-.ns-problems {
-  grid-column: 1 / -1;
+.ns-board {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.ns-issues {
   min-width: 0;
 }
 
-.ns-problems-head {
+.ns-issues-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 8px 12px;
+  margin-bottom: 8px;
 }
 
-.ns-problems h3 {
+.ns-issues h3 {
   margin: 0;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.ns-issues.down h3 {
   color: var(--down);
 }
 
-.ns-problems ul {
+.ns-issues.warn h3 {
+  color: var(--cloak);
+}
+
+.ns-issues-cols,
+.ns-issues li {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 20px;
+  align-items: start;
+}
+
+.ns-issues-cols {
+  padding-bottom: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ns-issues ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
-.ns-problems li {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 8px 16px;
-  font-size: 12px;
-  padding-top: 10px;
+.ns-issues li {
+  min-width: 0;
+  padding: 10px 0;
   border-top: 1px solid var(--line);
 }
 
-.ns-problems em {
-  font-style: normal;
-  font-family: var(--mono);
-  color: var(--muted);
+.ns-issues li:first-child {
+  padding-top: 10px;
+}
+
+.ns-issues a {
+  font-weight: 500;
   overflow-wrap: anywhere;
+}
+
+.ns-issues .ns-pair {
+  margin: 0;
+  font-size: 12px;
+}
+
+.ns-issues .caption {
+  margin: 10px 0 0;
 }
 
 .grid {
@@ -650,17 +753,17 @@ h2 {
 }
 
 .toolbar {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr) auto;
+  gap: 10px 12px;
   align-items: center;
   padding: 12px 14px;
   border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
   min-width: 0;
 }
 
 .toolbar input {
-  flex: 1 1 180px;
+  width: 100%;
   min-width: 0;
   background: var(--bg);
   color: var(--text);
@@ -703,11 +806,16 @@ h2 {
   border-color: var(--text);
 }
 
+.toolbar > .chips {
+  min-width: 0;
+}
+
 .count {
-  margin: 0 0 0 auto;
+  margin: 0;
   color: var(--muted);
   font-family: var(--mono);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .table-scroll {
@@ -729,7 +837,7 @@ h2 {
 
   table {
     width: 100%;
-    min-width: 760px;
+    min-width: 880px;
     border-collapse: collapse;
   }
 
@@ -773,7 +881,37 @@ th {
 
 .ns-cell {
   white-space: normal;
-  max-width: 240px;
+  max-width: 340px;
+  overflow-wrap: anywhere;
+}
+
+.ns-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.ns-check.is-bad {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ns-badge {
+  flex: 0 0 auto;
+}
+
+.ns-live {
+  overflow-wrap: anywhere;
+}
+
+.ns-pair {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
@@ -820,7 +958,8 @@ tr {
   transition: background 0.18s var(--ease);
 }
 
-tr.cloak td {
+tr.cloak td,
+tr.ns-mismatch td {
   background: color-mix(in srgb, var(--cloak) 9%, #fff);
 }
 
@@ -902,7 +1041,7 @@ tr.down td {
   }
 
   .chips button:hover,
-  .ns-problems-head button:hover,
+  .ns-issues-head button:hover,
   .table-more button:hover {
     border-color: var(--muted);
   }
@@ -911,14 +1050,14 @@ tr.down td {
     background: var(--ok-bg);
   }
 
-  tr:hover:not(.cloak):not(.ns-bad):not(.down) td {
+  tr:hover:not(.cloak):not(.ns-bad):not(.ns-mismatch):not(.down) td {
     background: #f4f5f7;
   }
 }
 
 @media (pointer: coarse) {
   .chips button,
-  .ns-problems-head button,
+  .ns-issues-head button,
   .table-more button,
   .btn-refresh {
     min-height: 44px;
@@ -935,7 +1074,11 @@ tr.down td {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
-  .ns-strip {
+  .ns-top {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ns-providers {
     grid-column: 1 / -1;
   }
 
@@ -995,7 +1138,8 @@ tr.down td {
     background: var(--bg-3);
   }
 
-  tr.cloak td:nth-child(2) {
+  tr.cloak td:nth-child(2),
+  tr.ns-mismatch td:nth-child(2) {
     background: color-mix(in srgb, var(--cloak) 9%, #fff);
   }
 
@@ -1069,12 +1213,42 @@ tr.down td {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .ns-problems li {
+  .ns-top {
+    grid-column: auto;
     grid-template-columns: 1fr;
   }
 
-  .ns-problems-head button {
+  .ns-providers {
+    grid-column: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .ns-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ns-stats li {
+    min-width: 0;
+  }
+
+  .ns-issues-head button {
     width: 100%;
+  }
+
+  .ns-issues-cols {
+    display: none;
+  }
+
+  .ns-issues li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .ns-issues .ns-pair::before {
+    content: attr(data-label) ": ";
+    color: var(--muted);
   }
 
   .bars {
@@ -1164,6 +1338,8 @@ tr.down td {
 
   tr.cloak td,
   tr.cloak td:nth-child(2),
+  tr.ns-mismatch td,
+  tr.ns-mismatch td:nth-child(2),
   tr.ns-bad td,
   tr.ns-bad td:nth-child(2),
   tr.down td,
@@ -1171,7 +1347,8 @@ tr.down td {
     background: transparent;
   }
 
-  tr.cloak {
+  tr.cloak,
+  tr.ns-mismatch {
     background: color-mix(in srgb, var(--cloak) 9%, #fff);
   }
 
@@ -1249,6 +1426,14 @@ tr.down td {
 
   .summary-title {
     font-size: 20px;
+  }
+
+  .ns-status {
+    font-size: 16px;
+  }
+
+  .ns-stats {
+    grid-template-columns: 1fr;
   }
 
   .summary-split {

@@ -1,4 +1,4 @@
-import type { SiteRow, StatusKind } from "../types";
+import type { NsMatch, SiteRow, StatusKind } from "../types";
 
 const COMPOUND_ZONES = ["org.uk", "co.uk", "gb.net"];
 
@@ -54,6 +54,23 @@ export function nsReason(row: SiteRow): string | null {
   }
   if (row.dns && row.dns.ns.length === 0) return "NS не найдены";
   return null;
+}
+
+/**
+ * Сверка с эталоном. Только === true / === false;
+ * нет поля, undefined и null — «без эталона».
+ */
+export function nsMatchOf(row: SiteRow): NsMatch {
+  if (row.ns_match === true) return true;
+  if (row.ns_match === false) return false;
+  return null;
+}
+
+export function formatNsHosts(
+  hosts: string[] | undefined,
+  empty = "—",
+): string {
+  return hosts?.length ? hosts.join(" · ") : empty;
 }
 
 export function statusLabel(row: SiteRow): string {

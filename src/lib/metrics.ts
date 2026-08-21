@@ -2,10 +2,19 @@ import type {
   LatencyBucket,
   Metrics,
   NamedCount,
+  NsMismatch,
   NsProblem,
   StatusPayload,
 } from "../types";
-import { hostnameOf, nsProvider, nsReason, SSL_WARN_DAYS, statusLabel, zoneOf } from "./site";
+import {
+  hostnameOf,
+  nsMatchOf,
+  nsProvider,
+  nsReason,
+  SSL_WARN_DAYS,
+  statusLabel,
+  zoneOf,
+} from "./site";
 
 const LATENCY_BUCKETS: Omit<LatencyBucket, "count">[] = [
   { label: "0–250", min: 0, max: 250 },
@@ -47,6 +56,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   const ns = new Map<string, number>();
   const urlCounts = new Map<string, number>();
   const nsProblems: NsProblem[] = [];
+  const nsMismatches: NsMismatch[] = [];
 
   let http200 = 0;
   let cloak503 = 0;
@@ -55,6 +65,9 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   let sslErrors = 0;
   let sslSoon = 0;
   let foreignRedirects = 0;
+  let nsMatchOk = 0;
+  let nsMatchBad = 0;
+  let nsMatchSkip = 0;
   const sslDays: number[] = [];
 
   for (const row of rows) {
@@ -84,6 +97,18 @@ export function computeMetrics(payload: StatusPayload): Metrics {
         nameservers: row.dns?.ns ?? [],
       });
     }
+
+    const match = nsMatchOf(row);
+    if (match === true) nsMatchOk += 1;
+    else if (match === false) {
+      nsMatchBad += 1;
+      nsMismatches.push({
+        url: row.url,
+        host: hostnameOf(row.url),
+        expected: row.ns_expected ?? [],
+        live: row.dns?.ns ?? [],
+      });
+    } else nsMatchSkip += 1;
   }
 
   const buckets: LatencyBucket[] = LATENCY_BUCKETS.map((bucket) => ({
@@ -118,6 +143,10 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     nsProviders: toNamedCounts(ns),
     nsOk: rows.length - nsProblems.length,
     nsProblems,
+    nsMatchOk,
+    nsMatchBad,
+    nsMatchSkip,
+    nsMismatches,
     slowest,
     duplicateUrls: [...urlCounts.values()].filter((count) => count > 1).length,
   };

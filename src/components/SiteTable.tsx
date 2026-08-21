@@ -1,14 +1,36 @@
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatMs, formatRowCount } from "../lib/format";
-import { hostnameOf, nsReason, sslDaysLeft, sslLabel, SSL_WARN_DAYS, statusKind, statusKindLabel, statusLabel, zoneOf } from "../lib/site";
+import {
+  formatNsHosts,
+  hostnameOf,
+  nsMatchOf,
+  nsReason,
+  sslDaysLeft,
+  sslLabel,
+  SSL_WARN_DAYS,
+  statusKind,
+  statusKindLabel,
+  statusLabel,
+  zoneOf,
+} from "../lib/site";
 import { filterAndSortRows, nextSort } from "../lib/table";
 import type { Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
 
 const MOBILE_PAGE = 10;
 const MOBILE_TABLE = "(max-width: 720px)";
 
-const FILTERS: TableFilter[] = ["all", "200", "503", "down", "ns", "ssl"];
+const FILTERS: TableFilter[] = [
+  "all",
+  "200",
+  "503",
+  "down",
+  "ns",
+  "nsok",
+  "nsbad",
+  "nsskip",
+  "ssl",
+];
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "host", label: "хост" },
@@ -23,6 +45,9 @@ function filterCaption(id: TableFilter, metrics: Metrics): string {
   if (id === "200") return `200 · ${metrics.http200}`;
   if (id === "503") return `503 · ${metrics.cloak503}`;
   if (id === "ns") return `NS · ${metrics.nsProblems.length}`;
+  if (id === "nsok") return `совпало · ${metrics.nsMatchOk}`;
+  if (id === "nsbad") return `не совпало · ${metrics.nsMatchBad}`;
+  if (id === "nsskip") return `без эталона · ${metrics.nsMatchSkip}`;
   if (id === "ssl") return `SSL · ${metrics.sslErrors + metrics.sslSoon}`;
   return `падения · ${metrics.failed}`;
 }
@@ -209,8 +234,16 @@ function sslCellClass(row: SiteRow): string {
 function SiteRowView({ row }: { row: SiteRow }) {
   const kind = statusKind(row);
   const nsFail = nsReason(row);
+  const match = nsMatchOf(row);
+  const tone = nsFail
+    ? "ns-bad"
+    : kind === "down"
+      ? "down"
+      : match === false
+        ? "ns-mismatch"
+        : kind;
   return (
-    <tr className={nsFail ? "ns-bad" : kind}>
+    <tr className={tone}>
       <td data-label="состояние">
         <span className={`status ${nsFail ? "down" : kind}`}>
           <i />
@@ -228,9 +261,7 @@ function SiteRowView({ row }: { row: SiteRow }) {
       <td data-label="зона" className="mono">
         {zoneOf(row.url)}
       </td>
-      <td data-label="NS" className={nsFail ? "mono down-text ns-cell" : "mono muted ns-cell"}>
-        {nsFail ?? (row.dns?.ns?.length ? row.dns.ns.join(" · ") : "—")}
-      </td>
+      <NsCell row={row} nsFail={nsFail} match={match} />
       <td data-label="SSL" className={sslCellClass(row)}>
         {sslLabel(row)}
       </td>
@@ -238,5 +269,48 @@ function SiteRowView({ row }: { row: SiteRow }) {
         {formatMs(row.duration)}
       </td>
     </tr>
+  );
+}
+
+function NsCell({
+  row,
+  nsFail,
+  match,
+}: {
+  row: SiteRow;
+  nsFail: string | null;
+  match: ReturnType<typeof nsMatchOf>;
+}) {
+  const live = row.dns?.ns ?? [];
+
+  return (
+    <td data-label="NS" className={nsFail ? "mono down-text ns-cell" : "mono muted ns-cell"}>
+      {match === false ? (
+        <div className="ns-check is-bad">
+          <span className="status down ns-badge">
+            <i />
+            не совпало
+          </span>
+          <p className="ns-pair">
+            ожидалось: {formatNsHosts(row.ns_expected)}
+          </p>
+          <p className="ns-pair">
+            сейчас: {formatNsHosts(live, "не резолвится")}
+          </p>
+        </div>
+      ) : (
+        <div className="ns-check">
+          {match === true ? (
+            <span className="status ok ns-badge">
+              <i />
+              ОК
+            </span>
+          ) : null}
+          <span className="ns-live">
+            {nsFail ?? formatNsHosts(live)}
+          </span>
+        </div>
+      )}
+    </td>
   );
 }

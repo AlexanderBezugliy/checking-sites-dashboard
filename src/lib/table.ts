@@ -1,11 +1,22 @@
 import type { SiteRow, SortDir, SortKey, TableFilter } from "../types";
-import { hostnameOf, isSslSoon, nsProvider, nsReason, sslDaysLeft, zoneOf } from "./site";
+import {
+  hostnameOf,
+  isSslSoon,
+  nsMatchOf,
+  nsProvider,
+  nsReason,
+  sslDaysLeft,
+  zoneOf,
+} from "./site";
 
 export function matchesFilter(row: SiteRow, filter: TableFilter): boolean {
   if (filter === "200") return row.status === 200;
   if (filter === "503") return row.status === 503;
   if (filter === "down") return !row.alive;
   if (filter === "ns") return nsReason(row) !== null;
+  if (filter === "nsok") return nsMatchOf(row) === true;
+  if (filter === "nsbad") return nsMatchOf(row) === false;
+  if (filter === "nsskip") return nsMatchOf(row) == null;
   if (filter === "ssl") return isSslSoon(row);
   return true;
 }
@@ -14,12 +25,14 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
   const ns = (row.dns?.ns ?? []).join(" ").toLowerCase();
+  const expected = (row.ns_expected ?? []).join(" ").toLowerCase();
   return (
     row.url.toLowerCase().includes(needle) ||
     hostnameOf(row.url).toLowerCase().includes(needle) ||
     zoneOf(row.url).toLowerCase().includes(needle) ||
     nsProvider(row.dns?.ns).toLowerCase().includes(needle) ||
-    ns.includes(needle)
+    ns.includes(needle) ||
+    expected.includes(needle)
   );
 }
 

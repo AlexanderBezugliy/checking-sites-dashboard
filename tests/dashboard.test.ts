@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { hostnameOf, nsProvider, nsReason, statusKind, zoneOf } from "../src/lib/site";
+import {
+  formatNsHosts,
+  hostnameOf,
+  nsMatchOf,
+  nsProvider,
+  nsReason,
+  statusKind,
+  zoneOf,
+} from "../src/lib/site";
 import { computeMetrics, httpMixParts } from "../src/lib/metrics";
 import { filterAndSortRows, nextSort } from "../src/lib/table";
 import { formatRowCount, formatSslSummary, relativeFromNow } from "../src/lib/format";
@@ -64,6 +72,48 @@ describe("site helpers", () => {
       nsReason(row({ url: "https://ok.com", status: 200, alive: true })),
     ).toBeNull();
   });
+
+  it("reads ns_match strictly, never via truthy", () => {
+    expect(
+      nsMatchOf(
+        row({
+          url: "https://winbeastcasino.gb.net",
+          status: 503,
+          ns_match: true,
+          ns_expected: ["nina.ns.cloudflare.com", "rodney.ns.cloudflare.com"],
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      nsMatchOf(
+        row({
+          url: "https://smoothspins-casino-official.com",
+          status: 436,
+          alive: false,
+          ns_match: false,
+          ns_expected: ["imani.ns.cloudflare.com", "will.ns.cloudflare.com"],
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      nsMatchOf(
+        row({
+          url: "https://myteamware.com",
+          status: 503,
+          ns_match: null,
+          ns_expected: [],
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      nsMatchOf(row({ url: "https://old-cache.com", status: 200 })),
+    ).toBeNull();
+    expect(formatNsHosts([])).toBe("—");
+    expect(formatNsHosts([], "не резолвится")).toBe("не резолвится");
+    expect(formatNsHosts(["ns1.dnsowl.com", "ns2.dnsowl.com"])).toBe(
+      "ns1.dnsowl.com · ns2.dnsowl.com",
+    );
+  });
 });
 
 describe("metrics from live snapshot", () => {
@@ -99,6 +149,13 @@ describe("metrics from live snapshot", () => {
     expect(metrics.nsProblems).toEqual([]);
     expect(metrics.nsOk).toBe(snapshot.data.length);
     expect(metrics.nsProviders[0]?.name).toBe("cloudflare.com");
+  });
+
+  it("treats missing ns_match on the snapshot as no etalon", () => {
+    expect(metrics.nsMatchOk).toBe(0);
+    expect(metrics.nsMatchBad).toBe(0);
+    expect(metrics.nsMatchSkip).toBe(snapshot.data.length);
+    expect(metrics.nsMismatches).toEqual([]);
   });
 
   it("places every timed site into a latency bucket", () => {
@@ -173,6 +230,90 @@ describe("table filter / sort", () => {
       sortKey: "duration",
       sortDir: "asc",
     });
+  });
+
+  it("filters NS etalon by strict match, not truthy", () => {
+    const etalonRows: SiteRow[] = [
+      row({
+        url: "https://winbeastcasino.gb.net",
+        status: 503,
+        ns_match: true,
+        ns_expected: ["nina.ns.cloudflare.com"],
+        dns: {
+          ns: ["nina.ns.cloudflare.com"],
+          a: [],
+          ok: true,
+          error: null,
+        },
+      }),
+      row({
+        url: "https://smoothspins-casino-official.com",
+        status: 436,
+        alive: false,
+        ns_match: false,
+        ns_expected: ["imani.ns.cloudflare.com", "will.ns.cloudflare.com"],
+        dns: {
+          ns: ["ns1.dnsowl.com", "ns2.dnsowl.com", "ns3.dnsowl.com"],
+          a: [],
+          ok: true,
+          error: null,
+        },
+      }),
+      row({
+        url: "https://cv666.it.com",
+        status: "DNS_ERROR",
+        alive: false,
+        ns_match: false,
+        ns_expected: ["carter.ns.cloudflare.com", "liberty.ns.cloudflare.com"],
+        dns: { ns: [], a: [], ok: false, error: "NS не найдены" },
+      }),
+      row({
+        url: "https://myteamware.com",
+        status: 503,
+        ns_match: null,
+        ns_expected: [],
+        dns: {
+          ns: ["colette.ns.cloudflare.com"],
+          a: [],
+          ok: true,
+          error: null,
+        },
+      }),
+      row({ url: "https://old-cache.com", status: 200 }),
+    ];
+
+    expect(
+      filterAndSortRows(etalonRows, "", "nsok", "host", "asc").map((item) => item.url),
+    ).toEqual(["https://winbeastcasino.gb.net"]);
+    expect(
+      filterAndSortRows(etalonRows, "", "nsbad", "host", "asc").map((item) => item.url),
+    ).toEqual([
+      "https://cv666.it.com",
+      "https://smoothspins-casino-official.com",
+    ]);
+    expect(
+      filterAndSortRows(etalonRows, "", "nsskip", "host", "asc").map((item) => item.url),
+    ).toEqual(["https://myteamware.com", "https://old-cache.com"]);
+    expect(filterAndSortRows(etalonRows, "", "ns", "host", "asc")).toHaveLength(1);
+    expect(
+      filterAndSortRows(etalonRows, "dnsowl", "all", "host", "asc")[0].url,
+    ).toContain("smoothspins");
+    expect(
+      filterAndSortRows(etalonRows, "imani.ns", "all", "host", "asc")[0].url,
+    ).toContain("smoothspins");
+
+    const etalonMetrics = computeMetrics({
+      last_update: "2026-08-21T00:00:00Z",
+      total_sites: etalonRows.length,
+      alive_count: 3,
+      failed_count: 2,
+      data: etalonRows,
+    });
+    expect(etalonMetrics.nsMatchOk).toBe(1);
+    expect(etalonMetrics.nsMatchBad).toBe(2);
+    expect(etalonMetrics.nsMatchSkip).toBe(2);
+    expect(etalonMetrics.nsMismatches).toHaveLength(2);
+    expect(etalonMetrics.nsOk).toBe(4);
   });
 
   it("filters SSL window and sorts missing days last", () => {

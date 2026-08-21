@@ -8,6 +8,7 @@ import { buildDigest, computeMetrics, httpMixParts } from "../src/lib/metrics";
 import {
   SSL_WARN_DAYS,
   isSslSoon,
+  nsMatchOf,
   nsReason,
   sslDaysLeft,
   sslLabel,
@@ -49,6 +50,11 @@ function recount(payload: StatusPayload) {
     sslMax: sslDays.length ? Math.max(...sslDays) : null,
     sslWithCert: sslDays.length,
     nsProblems: rows.filter((row) => nsReason(row) !== null).length,
+    nsMatchOk: rows.filter((row) => row.ns_match === true).length,
+    nsMatchBad: rows.filter((row) => row.ns_match === false).length,
+    nsMatchSkip: rows.filter(
+      (row) => row.ns_match !== true && row.ns_match !== false,
+    ).length,
     foreignRedirects: rows.filter((row) => row.redirect?.foreign).length,
     duplicateUrls: [...urlCounts.values()].filter((count) => count > 1).length,
     durations: rows
@@ -79,6 +85,13 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   expect(metrics.sslMaxDays).toBe(expected.sslMax);
   expect(metrics.nsProblems).toHaveLength(expected.nsProblems);
   expect(metrics.nsOk).toBe(expected.rows - expected.nsProblems);
+  expect(metrics.nsMatchOk).toBe(expected.nsMatchOk);
+  expect(metrics.nsMatchBad).toBe(expected.nsMatchBad);
+  expect(metrics.nsMatchSkip).toBe(expected.nsMatchSkip);
+  expect(metrics.nsMismatches).toHaveLength(expected.nsMatchBad);
+  expect(
+    metrics.nsMatchOk + metrics.nsMatchBad + metrics.nsMatchSkip,
+  ).toBe(expected.rows);
   expect(metrics.foreignRedirects).toBe(expected.foreignRedirects);
   expect(metrics.duplicateUrls).toBe(expected.duplicateUrls);
 
@@ -99,6 +112,15 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   );
   expect(filterAndSortRows(payload.data, "", "ns", "host", "asc")).toHaveLength(
     expected.nsProblems,
+  );
+  expect(filterAndSortRows(payload.data, "", "nsok", "host", "asc")).toHaveLength(
+    expected.nsMatchOk,
+  );
+  expect(filterAndSortRows(payload.data, "", "nsbad", "host", "asc")).toHaveLength(
+    expected.nsMatchBad,
+  );
+  expect(filterAndSortRows(payload.data, "", "nsskip", "host", "asc")).toHaveLength(
+    expected.nsMatchSkip,
   );
   expect(filterAndSortRows(payload.data, "", "ssl", "host", "asc")).toHaveLength(
     payload.data.filter(isSslSoon).length,
@@ -155,6 +177,28 @@ describe("live GitHub status.json", () => {
       expect(row.url.startsWith("http")).toBe(true);
       const days = sslDaysLeft(row);
       if (days != null) expect(Number.isFinite(days)).toBe(true);
+    }
+
+    const byUrl = new Map(payload.data.map((row) => [row.url, row]));
+    const okRow = byUrl.get("https://winbeastcasino.gb.net");
+    if (okRow) expect(nsMatchOf(okRow)).toBe(true);
+    const deadDns = byUrl.get("https://cv666.it.com");
+    if (deadDns) {
+      expect(nsMatchOf(deadDns)).toBe(false);
+      expect(deadDns.dns?.ns ?? []).toEqual([]);
+    }
+    const swapped = byUrl.get("https://smoothspins-casino-official.com");
+    if (swapped) {
+      expect(nsMatchOf(swapped)).toBe(false);
+      expect(swapped.ns_expected).toEqual([
+        "imani.ns.cloudflare.com",
+        "will.ns.cloudflare.com",
+      ]);
+    }
+    const noEtalon = byUrl.get("https://myteamware.com");
+    if (noEtalon) {
+      expect(nsMatchOf(noEtalon)).toBeNull();
+      expect(noEtalon.ns_expected ?? []).toEqual([]);
     }
   });
 });

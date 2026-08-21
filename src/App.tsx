@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FleetOverview } from "./components/FleetOverview";
 import { Header } from "./components/Header";
 import { KpiGrid } from "./components/KpiGrid";
+import { NsStrip } from "./components/NsStrip";
 import { SiteTable } from "./components/SiteTable";
 import { useFleetStatus } from "./hooks/useFleetStatus";
 import type { TableFilter } from "./types";
@@ -23,9 +24,11 @@ export default function App() {
 
       {metrics && payload ? (
         <>
-          <KpiGrid
+          <KpiGrid metrics={metrics} />
+          <NsStrip
             metrics={metrics}
-            onShowNsProblems={() => setFilter("ns")}
+            onShowProblems={() => setFilter("ns")}
+            onShowMismatches={() => setFilter("nsbad")}
           />
           <FleetOverview payload={payload} metrics={metrics} />
           <SiteTable
