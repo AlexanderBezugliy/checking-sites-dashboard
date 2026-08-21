@@ -84,6 +84,7 @@ export function statusKind(row: SiteRow): StatusKind {
   if (!row.alive || row.redirect?.foreign) return "down";
   if (isSslSoon(row)) return "warn";
   if (row.status === 503) return "cloak";
+  if (row.status === 302) return "redirect";
   if (row.status === 200) return "ok";
   return "warn";
 }
@@ -91,6 +92,7 @@ export function statusKind(row: SiteRow): StatusKind {
 export function statusKindLabel(kind: StatusKind): string {
   if (kind === "ok") return "200";
   if (kind === "cloak") return "клоака";
+  if (kind === "redirect") return "302";
   if (kind === "down") return "падение";
   return "внимание";
 }

@@ -21,11 +21,15 @@ export function FleetOverview({
       <article className="panel reveal delay-2">
         <h2>Ответ сервера</h2>
         <p className="hint">
-          200 — страница открылась. 503 — клоака, для монитора это норма.
+          200 — страница открылась. 302 — редирект на себя, сайт живой. 503 —
+          клоака, для монитора это норма.
         </p>
         <div className="mix">
           {mix.okShare > 0 ? (
             <span className="ok" style={{ flex: mix.okShare }} />
+          ) : null}
+          {mix.redirectShare > 0 ? (
+            <span className="redirect" style={{ flex: mix.redirectShare }} />
           ) : null}
           {mix.cloakShare > 0 ? (
             <span className="cloak" style={{ flex: mix.cloakShare }} />
@@ -39,11 +43,17 @@ export function FleetOverview({
             <i className="ok" /> <b className="ok-text">200</b> · {metrics.http200}
           </li>
           <li>
-            <i className="cloak" /> <b className="cloak-text">503</b> · {metrics.cloak503}
+            <i className="redirect" /> <b className="redirect-text">302</b> ·{" "}
+            {metrics.http302}
           </li>
           <li>
-            <i className="down" /> <b className="down-text">ошибка</b> · {mix.other}
+            <i className="cloak" /> <b className="cloak-text">503</b> · {metrics.cloak503}
           </li>
+          {mix.other > 0 ? (
+            <li>
+              <i className="down" /> <b className="down-text">ошибка</b> · {mix.other}
+            </li>
+          ) : null}
         </ul>
         <dl className="facts">
           <div>

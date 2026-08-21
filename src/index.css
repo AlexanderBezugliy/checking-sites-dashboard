@@ -10,13 +10,39 @@
   --ok-bg: #d9f5e3;
   --cloak: #e07000;
   --cloak-bg: #ffe8cc;
+  --redirect: #1a6fbf;
+  --redirect-bg: #d7e9f8;
   --down: #d61f2c;
   --down-bg: #ffd6d8;
   --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --serif: "Newsreader", "Times New Roman", serif;
+  --logo: "Nunito", var(--sans);
   --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --gutter: clamp(12px, 4vw, 28px);
+}
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --gradient-angle-offset {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --gradient-percent {
+  syntax: "<percentage>";
+  initial-value: 5%;
+  inherits: false;
+}
+
+@property --gradient-shine {
+  syntax: "<color>";
+  initial-value: white;
+  inherits: false;
 }
 
 * {
@@ -94,12 +120,23 @@ input {
 
 h1 {
   margin: 0;
-  font-family: var(--serif);
-  font-size: clamp(28px, 5vw, 40px);
-  font-weight: 400;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  overflow-wrap: anywhere;
+  line-height: 0;
+}
+
+.brand-title {
+  display: block;
+  max-width: 100%;
+}
+
+.brand-logo {
+  display: block;
+  width: min(100%, 480px);
+  height: auto;
+}
+
+.brand-logo-type {
+  font-family: var(--logo);
+  font-weight: 800;
 }
 
 h2 {
@@ -139,7 +176,6 @@ h2 {
 }
 
 .chips button,
-.ns-issues-head button,
 .table-more button {
   background: transparent;
   color: var(--text);
@@ -150,26 +186,125 @@ h2 {
   transition:
     background 0.2s var(--ease),
     color 0.2s var(--ease),
-    border-color 0.2s var(--ease);
+    border-color 0.2s var(--ease),
+    transform 0.2s var(--ease);
 }
 
-.btn-refresh {
-  background: transparent;
-  color: var(--text);
-  border: 2px solid #118a3e;
-  border-radius: 24px;
-  padding: 8px 14px;
-  min-height: 40px;
+.shiny-cta {
+  --shiny-cta-bg: #111111;
+  --shiny-cta-bg-subtle: #1a1818;
+  --shiny-cta-fg: #ffffff;
+  --shiny-cta-highlight: #3dff7a;
+  --animation: gradient-angle linear infinite;
+  --duration: 3s;
+  --shadow-size: 2px;
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
   cursor: pointer;
-  transition:
-    background 0.2s var(--ease),
-    color 0.2s var(--ease),
-    border-color 0.2s var(--ease);
+  outline-offset: 4px;
+  padding: 8px 18px;
+  min-height: 40px;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 360px;
+  color: var(--shiny-cta-fg);
+  background:
+    linear-gradient(var(--shiny-cta-bg), var(--shiny-cta-bg)) padding-box,
+    conic-gradient(
+      from var(--gradient-angle),
+      transparent,
+      var(--shiny-cta-highlight) var(--gradient-percent),
+      var(--gradient-shine) calc(var(--gradient-percent) * 2),
+      var(--shiny-cta-highlight) calc(var(--gradient-percent) * 3),
+      transparent calc(var(--gradient-percent) * 4)
+    )
+    border-box;
+  box-shadow: inset 0 0 0 1px var(--shiny-cta-bg-subtle);
 }
 
-.btn-refresh:disabled {
-  opacity: 0.5;
+.shiny-cta::before,
+.shiny-cta::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  translate: -50% -50%;
+  z-index: -1;
+}
+
+.shiny-cta:active:not(:disabled) {
+  translate: 0 1px;
+}
+
+.shiny-cta::before {
+  --size: calc(100% - var(--shadow-size) * 3);
+  --position: 2px;
+  --space: calc(var(--position) * 2);
+  width: var(--size);
+  height: var(--size);
+  background: radial-gradient(
+      circle at var(--position) var(--position),
+      white calc(var(--position) / 4),
+      transparent 0
+    )
+    padding-box;
+  background-size: var(--space) var(--space);
+  background-repeat: space;
+  mask-image: conic-gradient(
+    from calc(var(--gradient-angle) + 45deg),
+    black,
+    transparent 10% 90%,
+    black
+  );
+  -webkit-mask-image: conic-gradient(
+    from calc(var(--gradient-angle) + 45deg),
+    black,
+    transparent 10% 90%,
+    black
+  );
+  border-radius: inherit;
+  opacity: 0.4;
+}
+
+.shiny-cta::after {
+  --animation: shimmer linear infinite;
+  width: 100%;
+  aspect-ratio: 1;
+  background: linear-gradient(
+    -50deg,
+    transparent,
+    var(--shiny-cta-highlight),
+    transparent
+  );
+  mask-image: radial-gradient(circle at bottom, transparent 40%, black);
+  -webkit-mask-image: radial-gradient(circle at bottom, transparent 40%, black);
+  opacity: 0.6;
+}
+
+.shiny-cta span {
+  position: relative;
+  z-index: 1;
+}
+
+.shiny-cta,
+.shiny-cta::before,
+.shiny-cta::after {
+  animation: var(--animation) var(--duration);
+}
+
+.shiny-cta:disabled {
+  opacity: 0.55;
   cursor: default;
+}
+
+.shiny-cta:disabled,
+.shiny-cta:disabled::before,
+.shiny-cta:disabled::after {
+  animation-play-state: paused;
 }
 
 .banner {
@@ -291,13 +426,17 @@ h2 {
   background: var(--cloak);
 }
 
+.summary-bar .redirect {
+  background: var(--redirect);
+}
+
 .summary-bar .down {
   background: var(--down);
 }
 
 .summary-split {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 12px 20px;
 }
 
@@ -331,6 +470,10 @@ h2 {
 
 .summary-split .is-cloak b {
   color: var(--cloak);
+}
+
+.summary-split .is-redirect b {
+  color: var(--redirect);
 }
 
 .summary-split .is-down b {
@@ -599,6 +742,12 @@ h2 {
   background: var(--cloak);
 }
 
+.mix .redirect,
+.legend .redirect,
+.status.redirect i {
+  background: var(--redirect);
+}
+
 .mix .down,
 .legend .down,
 .status.down i {
@@ -612,6 +761,11 @@ h2 {
 
 .cloak-text {
   color: var(--cloak);
+  font-weight: 500;
+}
+
+.redirect-text {
+  color: var(--redirect);
   font-weight: 500;
 }
 
@@ -748,6 +902,7 @@ h2 {
 
 .table-wrap {
   margin-top: 16px;
+  scroll-margin-top: 16px;
   background: var(--bg-2);
   border: 1px solid var(--line);
 }
@@ -940,6 +1095,11 @@ th {
   background: var(--cloak-bg);
 }
 
+.status.redirect {
+  color: var(--redirect);
+  background: var(--redirect-bg);
+}
+
 .status.down {
   color: var(--down);
   background: var(--down-bg);
@@ -961,6 +1121,10 @@ tr {
 tr.cloak td,
 tr.ns-mismatch td {
   background: color-mix(in srgb, var(--cloak) 9%, #fff);
+}
+
+tr.redirect td {
+  background: color-mix(in srgb, var(--redirect) 10%, #fff);
 }
 
 tr.ns-bad td,
@@ -997,6 +1161,19 @@ tr.down td {
   .legend i,
   .status i {
     animation: pulse 2.8s var(--ease) infinite;
+  }
+
+  .table-wrap.is-jump {
+    animation: table-arrive 1.05s var(--ease);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shiny-cta,
+  .shiny-cta::before,
+  .shiny-cta::after,
+  .shiny-cta span::before {
+    animation: none;
   }
 }
 
@@ -1035,30 +1212,52 @@ tr.down td {
   50% { opacity: 0.35; }
 }
 
+@keyframes gradient-angle {
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes table-arrive {
+  0% {
+    border-color: var(--line);
+    box-shadow: none;
+  }
+  18% {
+    border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
+    box-shadow: inset 4px 0 0 var(--ok);
+  }
+  100% {
+    border-color: var(--line);
+    box-shadow: none;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   a:hover {
     color: var(--muted);
   }
 
   .chips button:hover,
-  .ns-issues-head button:hover,
   .table-more button:hover {
     border-color: var(--muted);
   }
 
-  .btn-refresh:hover:not(:disabled) {
-    background: var(--ok-bg);
-  }
-
-  tr:hover:not(.cloak):not(.ns-bad):not(.ns-mismatch):not(.down) td {
+  tr:hover:not(.cloak):not(.redirect):not(.ns-bad):not(.ns-mismatch):not(.down) td {
     background: #f4f5f7;
   }
 }
 
 @media (pointer: coarse) {
   .chips button,
-  .ns-issues-head button,
   .table-more button,
+  .shiny-cta,
   .btn-refresh {
     min-height: 44px;
   }
@@ -1141,6 +1340,10 @@ tr.down td {
   tr.cloak td:nth-child(2),
   tr.ns-mismatch td:nth-child(2) {
     background: color-mix(in srgb, var(--cloak) 9%, #fff);
+  }
+
+  tr.redirect td:nth-child(2) {
+    background: color-mix(in srgb, var(--redirect) 10%, #fff);
   }
 
   tr.ns-bad td:nth-child(2),
@@ -1233,7 +1436,7 @@ tr.down td {
     min-width: 0;
   }
 
-  .ns-issues-head button {
+  .ns-issues-head .shiny-cta {
     width: 100%;
   }
 
@@ -1338,6 +1541,8 @@ tr.down td {
 
   tr.cloak td,
   tr.cloak td:nth-child(2),
+  tr.redirect td,
+  tr.redirect td:nth-child(2),
   tr.ns-mismatch td,
   tr.ns-mismatch td:nth-child(2),
   tr.ns-bad td,
@@ -1350,6 +1555,10 @@ tr.down td {
   tr.cloak,
   tr.ns-mismatch {
     background: color-mix(in srgb, var(--cloak) 9%, #fff);
+  }
+
+  tr.redirect {
+    background: color-mix(in srgb, var(--redirect) 10%, #fff);
   }
 
   tr.ns-bad,
@@ -1420,8 +1629,8 @@ tr.down td {
     letter-spacing: 0.2em;
   }
 
-  h1 {
-    font-size: 26px;
+  .brand-logo {
+    width: 100%;
   }
 
   .summary-title {

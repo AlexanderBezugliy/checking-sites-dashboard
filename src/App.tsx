@@ -11,6 +11,12 @@ import type { TableFilter } from "./types";
 export default function App() {
   const { payload, metrics, error, loading, refresh } = useFleetStatus();
   const [filter, setFilter] = useState<TableFilter>("all");
+  const [tableJump, setTableJump] = useState(0);
+
+  function showInTable(next: TableFilter) {
+    setFilter(next);
+    setTableJump((count) => count + 1);
+  }
 
   return (
     <div className="shell">
@@ -27,14 +33,15 @@ export default function App() {
           <KpiGrid metrics={metrics} />
           <NsStrip
             metrics={metrics}
-            onShowProblems={() => setFilter("ns")}
-            onShowMismatches={() => setFilter("nsbad")}
+            onShowProblems={() => showInTable("ns")}
+            onShowMismatches={() => showInTable("nsbad")}
           />
           <FleetOverview payload={payload} metrics={metrics} />
           <SiteTable
             rows={payload.data}
             metrics={metrics}
             filter={filter}
+            jumpToken={tableJump}
             onFilterChange={setFilter}
           />
         </>

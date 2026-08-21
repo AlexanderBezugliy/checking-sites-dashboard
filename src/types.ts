@@ -50,7 +50,7 @@ export type StatusPayload = {
 
 export type DataSource = "github" | "snapshot";
 
-export type StatusKind = "ok" | "cloak" | "down" | "warn";
+export type StatusKind = "ok" | "cloak" | "redirect" | "down" | "warn";
 
 export type LatencyBucket = {
   label: string;
@@ -83,6 +83,7 @@ export type Metrics = {
   alive: number;
   failed: number;
   http200: number;
+  http302: number;
   cloak503: number;
   otherHttp: number;
   dnsErrors: number;
@@ -111,6 +112,7 @@ export type Metrics = {
 export type TableFilter =
   | "all"
   | "200"
+  | "302"
   | "503"
   | "down"
   | "ns"

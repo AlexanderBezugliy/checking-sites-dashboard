@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { formatNsHosts } from "../lib/site";
 import type { Metrics, NsMismatch, NsProblem } from "../types";
+import { ShinyButton } from "./ShinyButton";
 
 export function NsStrip({
   metrics,
@@ -119,9 +120,9 @@ function IssueBlock({
       <div className="ns-issues-head">
         <h3>{title}</h3>
         {onShow ? (
-          <button type="button" onClick={onShow}>
+          <ShinyButton className="btn-show-table" onClick={onShow}>
             Показать в таблице
-          </button>
+          </ShinyButton>
         ) : null}
       </div>
       <div className="ns-issues-cols" aria-hidden="true">

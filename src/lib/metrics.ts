@@ -59,6 +59,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   const nsMismatches: NsMismatch[] = [];
 
   let http200 = 0;
+  let http302 = 0;
   let cloak503 = 0;
   let otherHttp = 0;
   let dnsErrors = 0;
@@ -72,6 +73,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
 
   for (const row of rows) {
     if (row.status === 200) http200 += 1;
+    else if (row.status === 302) http302 += 1;
     else if (row.status === 503) cloak503 += 1;
     else if (typeof row.status === "number") otherHttp += 1;
 
@@ -126,6 +128,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     alive: payload.alive_count ?? rows.filter((row) => row.alive).length,
     failed: payload.failed_count ?? rows.filter((row) => !row.alive).length,
     http200,
+    http302,
     cloak503,
     otherHttp,
     dnsErrors,
@@ -153,12 +156,19 @@ export function computeMetrics(payload: StatusPayload): Metrics {
 }
 
 export function httpMixParts(metrics: Metrics) {
-  const other = Math.max(0, metrics.total - metrics.http200 - metrics.cloak503);
-  const total = Math.max(1, metrics.http200 + metrics.cloak503 + other);
+  const other = Math.max(
+    0,
+    metrics.total - metrics.http200 - metrics.http302 - metrics.cloak503,
+  );
+  const total = Math.max(
+    1,
+    metrics.http200 + metrics.http302 + metrics.cloak503 + other,
+  );
   return {
     total,
     other,
     okShare: metrics.http200 / total,
+    redirectShare: metrics.http302 / total,
     cloakShare: metrics.cloak503 / total,
     otherShare: other / total,
   };
@@ -178,8 +188,8 @@ export function buildDigest(payload: StatusPayload, metrics: Metrics): string {
       .slice(0, 12)
       .map((row) => `   • ${hostnameOf(row.url)} — ${statusLabel(row)}`)
       .join("\n");
-    return `Проблемы: ${metrics.failed}/${metrics.total}\nЖивые (DNS + 200/503): ${metrics.alive}\nHTTP 200: ${metrics.http200} | клоака 503: ${metrics.cloak503}\n${downs}${slowBlock}`;
+    return `Проблемы: ${metrics.failed}/${metrics.total}\nЖивые (DNS + 200/503): ${metrics.alive}\nHTTP 200: ${metrics.http200} | редирект 302: ${metrics.http302} | клоака 503: ${metrics.cloak503}\n${downs}${slowBlock}`;
   }
 
-  return `Всё тихо: ${metrics.alive}/${metrics.total} живые (DNS + 200/503)\nHTTP 200: ${metrics.http200} | клоака 503: ${metrics.cloak503}${slowBlock}`;
+  return `Всё тихо: ${metrics.alive}/${metrics.total} живые (DNS + 200/503)\nHTTP 200: ${metrics.http200} | редирект 302: ${metrics.http302} | клоака 503: ${metrics.cloak503}${slowBlock}`;
 }

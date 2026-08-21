@@ -27,6 +27,7 @@ function recount(payload: StatusPayload) {
   const rows = payload.data ?? [];
   const http200 = rows.filter((row) => row.status === 200).length;
   const cloak503 = rows.filter((row) => row.status === 503).length;
+  const http302 = rows.filter((row) => row.status === 302).length;
   const sslDays = rows
     .map((row) => row.ssl?.daysLeft)
     .filter((days): days is number => typeof days === "number");
@@ -41,6 +42,7 @@ function recount(payload: StatusPayload) {
     failed: rows.filter((row) => !row.alive).length,
     http200,
     cloak503,
+    http302,
     sslErrors: rows.filter((row) => row.status === "SSL_ERROR").length,
     sslSoon: rows.filter(
       (row) =>
@@ -78,6 +80,7 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   expect(metrics.failed).toBe(expected.failed);
   expect(metrics.alive + metrics.failed).toBe(metrics.total);
   expect(metrics.http200).toBe(expected.http200);
+  expect(metrics.http302).toBe(expected.http302);
   expect(metrics.cloak503).toBe(expected.cloak503);
   expect(metrics.sslErrors).toBe(expected.sslErrors);
   expect(metrics.sslSoon).toBe(expected.sslSoon);
@@ -95,8 +98,12 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   expect(metrics.foreignRedirects).toBe(expected.foreignRedirects);
   expect(metrics.duplicateUrls).toBe(expected.duplicateUrls);
 
-  expect(metrics.http200 + metrics.cloak503 + mix.other).toBe(metrics.total);
-  expect(mix.okShare + mix.cloakShare + mix.otherShare).toBeCloseTo(1, 10);
+  expect(
+    metrics.http200 + metrics.http302 + metrics.cloak503 + mix.other,
+  ).toBe(metrics.total);
+  expect(
+    mix.okShare + mix.redirectShare + mix.cloakShare + mix.otherShare,
+  ).toBeCloseTo(1, 10);
   expect(payload.data.filter(isSslSoon)).toHaveLength(
     expected.sslErrors + expected.sslSoon,
   );
@@ -106,6 +113,9 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   );
   expect(filterAndSortRows(payload.data, "", "503", "host", "asc")).toHaveLength(
     expected.cloak503,
+  );
+  expect(filterAndSortRows(payload.data, "", "302", "host", "asc")).toHaveLength(
+    expected.http302,
   );
   expect(filterAndSortRows(payload.data, "", "down", "host", "asc")).toHaveLength(
     expected.failed,

@@ -1,6 +1,8 @@
 import { config } from "../config";
 import { formatKyiv, relativeFromNow } from "../lib/format";
 import type { StatusPayload } from "../types";
+import { BrandLogo } from "./BrandLogo";
+import { ShinyButton } from "./ShinyButton";
 
 type HeaderProps = {
   payload: StatusPayload | null;
@@ -13,7 +15,9 @@ export function Header({ payload, loading, onRefresh }: HeaderProps) {
     <header className="top">
       <div className="top-brand">
         <p className="kicker">{config.telegramChannel}</p>
-        <h1>Checking-sites</h1>
+        <h1 className="brand-title">
+          <BrandLogo />
+        </h1>
       </div>
       <div className="top-meta">
         <div>
@@ -26,14 +30,9 @@ export function Header({ payload, loading, onRefresh }: HeaderProps) {
           </strong>
         </div>
       </div>
-      <button
-        type="button"
-        className="btn-refresh"
-        onClick={onRefresh}
-        disabled={loading}
-      >
+      <ShinyButton className="btn-refresh" onClick={onRefresh} disabled={loading}>
         {loading ? "Обновляю…" : "Обновить"}
-      </button>
+      </ShinyButton>
     </header>
   );
 }

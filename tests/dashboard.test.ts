@@ -48,10 +48,20 @@ describe("site helpers", () => {
     expect(nsProvider([])).toBe("—");
   });
 
-  it("marks cloak vs down", () => {
+  it("marks cloak, redirect, and down", () => {
     expect(statusKind(row({ url: "https://a.com", status: 503, alive: true }))).toBe(
       "cloak",
     );
+    expect(
+      statusKind(
+        row({
+          url: "https://b.com",
+          status: 302,
+          alive: true,
+          redirect: { status: 302, location: "/", foreign: false },
+        }),
+      ),
+    ).toBe("redirect");
     expect(statusKind(row({ url: "https://a.com", status: "DNS_ERROR", alive: false }))).toBe(
       "down",
     );
@@ -129,9 +139,12 @@ describe("metrics from live snapshot", () => {
     expect(metrics.cloak503).toBe(
       snapshot.data.filter((row) => row.status === 503).length,
     );
-    expect(metrics.http200 + metrics.cloak503 + metrics.otherHttp).toBe(
-      snapshot.data.filter((row) => typeof row.status === "number").length,
+    expect(metrics.http302).toBe(
+      snapshot.data.filter((row) => row.status === 302).length,
     );
+    expect(
+      metrics.http200 + metrics.http302 + metrics.cloak503 + metrics.otherHttp,
+    ).toBe(snapshot.data.filter((row) => typeof row.status === "number").length);
     expect(metrics.alive + metrics.failed).toBe(metrics.total);
   });
 
@@ -163,21 +176,29 @@ describe("metrics from live snapshot", () => {
     expect(metrics.buckets.reduce((sum, bucket) => sum + bucket.count, 0)).toBe(timed);
   });
 
-  it("puts non-200/503 rows into the mix remainder once", () => {
+  it("puts non-200/302/503 rows into the mix remainder once", () => {
     const payload: StatusPayload = {
       last_update: "2026-08-20T00:00:00Z",
-      total_sites: 3,
-      alive_count: 2,
+      total_sites: 4,
+      alive_count: 3,
       failed_count: 1,
       data: [
         row({ url: "https://a.com", status: 200 }),
         row({ url: "https://b.com", status: 503 }),
+        row({
+          url: "https://d.com",
+          status: 302,
+          redirect: { status: 302, location: "/", foreign: false },
+        }),
         row({ url: "https://c.com", status: "ERROR", alive: false, error: "timeout" }),
       ],
     };
     const mix = httpMixParts(computeMetrics(payload));
     expect(mix.other).toBe(1);
-    expect(mix.okShare + mix.cloakShare + mix.otherShare).toBeCloseTo(1, 10);
+    expect(computeMetrics(payload).http302).toBe(1);
+    expect(
+      mix.okShare + mix.redirectShare + mix.cloakShare + mix.otherShare,
+    ).toBeCloseTo(1, 10);
   });
 
   it("reads SSL day range without counting healthy certs as soon", () => {
@@ -211,11 +232,19 @@ describe("table filter / sort", () => {
   const rows: SiteRow[] = [
     row({ url: "https://alpha.gb.net", status: 200, alive: true, duration: 100 }),
     row({ url: "https://beta.org.uk", status: 503, alive: true, duration: 400 }),
+    row({
+      url: "https://jump.gb.net",
+      status: 302,
+      alive: true,
+      duration: 80,
+      redirect: { status: 302, location: "/", foreign: false },
+    }),
     row({ url: "https://down.com", status: "DNS_ERROR", alive: false, duration: 20 }),
   ];
 
   it("filters by cloak and query", () => {
     expect(filterAndSortRows(rows, "", "503", "host", "asc")).toHaveLength(1);
+    expect(filterAndSortRows(rows, "", "302", "host", "asc")[0].url).toContain("jump");
     expect(filterAndSortRows(rows, "gb.net", "all", "host", "asc")[0].url).toContain(
       "alpha",
     );
@@ -225,7 +254,7 @@ describe("table filter / sort", () => {
 
   it("sorts duration desc by default toggle", () => {
     const sorted = filterAndSortRows(rows, "", "all", "duration", "desc");
-    expect(sorted.map((item) => item.duration)).toEqual([400, 100, 20]);
+    expect(sorted.map((item) => item.duration)).toEqual([400, 100, 80, 20]);
     expect(nextSort("duration", "desc", "duration")).toEqual({
       sortKey: "duration",
       sortDir: "asc",

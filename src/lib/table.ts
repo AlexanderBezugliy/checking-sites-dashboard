@@ -11,6 +11,7 @@ import {
 
 export function matchesFilter(row: SiteRow, filter: TableFilter): boolean {
   if (filter === "200") return row.status === 200;
+  if (filter === "302") return row.status === 302;
   if (filter === "503") return row.status === 503;
   if (filter === "down") return !row.alive;
   if (filter === "ns") return nsReason(row) !== null;

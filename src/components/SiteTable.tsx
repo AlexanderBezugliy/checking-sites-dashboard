@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatMs, formatRowCount } from "../lib/format";
 import {
@@ -23,6 +23,7 @@ const MOBILE_TABLE = "(max-width: 720px)";
 const FILTERS: TableFilter[] = [
   "all",
   "200",
+  "302",
   "503",
   "down",
   "ns",
@@ -43,6 +44,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 function filterCaption(id: TableFilter, metrics: Metrics): string {
   if (id === "all") return `все ${metrics.total}`;
   if (id === "200") return `200 · ${metrics.http200}`;
+  if (id === "302") return `302 · ${metrics.http302}`;
   if (id === "503") return `503 · ${metrics.cloak503}`;
   if (id === "ns") return `NS · ${metrics.nsProblems.length}`;
   if (id === "nsok") return `совпало · ${metrics.nsMatchOk}`;
@@ -56,17 +58,20 @@ export function SiteTable({
   rows,
   metrics,
   filter,
+  jumpToken = 0,
   onFilterChange,
 }: {
   rows: SiteRow[];
   metrics: Metrics;
   filter: TableFilter;
+  jumpToken?: number;
   onFilterChange: (filter: TableFilter) => void;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("duration");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const compact = useMediaQuery(MOBILE_TABLE);
+  const wrapRef = useRef<HTMLElement>(null);
   const listKey = `${filter}|${query}|${sortKey}|${sortDir}`;
   const [paging, setPaging] = useState({ listKey, shown: MOBILE_PAGE });
   if (paging.listKey !== listKey) {
@@ -82,6 +87,18 @@ export function SiteTable({
   const pageRows = compact ? visible.slice(0, shown) : visible;
   const remaining = compact ? Math.max(0, visible.length - pageRows.length) : 0;
 
+  useEffect(() => {
+    if (!jumpToken) return;
+    const node = wrapRef.current;
+    if (!node) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    node.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    if (reduced) return;
+    node.classList.remove("is-jump");
+    void node.offsetWidth;
+    node.classList.add("is-jump");
+  }, [jumpToken]);
+
   function toggleSort(key: SortKey) {
     const next = nextSort(sortKey, sortDir, key);
     setSortKey(next.sortKey);
@@ -89,7 +106,16 @@ export function SiteTable({
   }
 
   return (
-    <section className="table-wrap reveal delay-5">
+    <section
+      id="site-table"
+      ref={wrapRef}
+      className="table-wrap reveal delay-5"
+      onAnimationEnd={(event) => {
+        if (event.animationName === "table-arrive") {
+          event.currentTarget.classList.remove("is-jump");
+        }
+      }}
+    >
       <div className="toolbar">
         <input
           value={query}

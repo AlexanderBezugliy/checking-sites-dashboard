@@ -33,6 +33,9 @@ export function KpiGrid({ metrics }: { metrics: Metrics }) {
           {mix.okShare > 0 ? (
             <span className="ok" style={{ flex: mix.okShare }} />
           ) : null}
+          {mix.redirectShare > 0 ? (
+            <span className="redirect" style={{ flex: mix.redirectShare }} />
+          ) : null}
           {mix.cloakShare > 0 ? (
             <span className="cloak" style={{ flex: mix.cloakShare }} />
           ) : null}
@@ -45,6 +48,11 @@ export function KpiGrid({ metrics }: { metrics: Metrics }) {
             <span>HTTP 200</span>
             <b>{metrics.http200}</b>
             <em>{pct(metrics.http200)}%</em>
+          </div>
+          <div className="is-redirect">
+            <span>Редирект 302</span>
+            <b>{metrics.http302}</b>
+            <em>{pct(metrics.http302)}%</em>
           </div>
           <div className="is-cloak">
             <span>Клоака 503</span>
