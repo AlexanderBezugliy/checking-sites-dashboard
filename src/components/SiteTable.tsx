@@ -1,6 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatMs, formatRowCount } from "../lib/format";
+import {
+  indexHomeLabel,
+  indexKind,
+  isIndexAutoExpand,
+  isIndexSkip,
+} from "../lib/index";
 import {
   formatNsHosts,
   hostnameOf,
@@ -14,8 +20,9 @@ import {
   statusLabel,
   zoneOf,
 } from "../lib/site";
-import { filterAndSortRows, nextSort } from "../lib/table";
+import { filterAndSortRows, hasIndexColumn, nextSort } from "../lib/table";
 import type { Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
+import { SiteIndexDetail } from "./SiteIndexDetail";
 
 const MOBILE_PAGE = 10;
 const MOBILE_TABLE = "(max-width: 720px)";
@@ -31,6 +38,13 @@ const FILTERS: TableFilter[] = [
   "nsbad",
   "nsskip",
   "ssl",
+  "indexok",
+  "indexbad",
+  "indexpartial",
+  "indexstale",
+  "indexnoindex",
+  "indexskip",
+  "indexunknown",
 ];
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -38,6 +52,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "status", label: "HTTP" },
   { key: "zone", label: "зона" },
   { key: "ssl", label: "SSL" },
+  { key: "index", label: "индекс" },
   { key: "duration", label: "время" },
 ];
 
@@ -51,6 +66,13 @@ function filterCaption(id: TableFilter, metrics: Metrics): string {
   if (id === "nsbad") return `не совпало · ${metrics.nsMatchBad}`;
   if (id === "nsskip") return `без эталона · ${metrics.nsMatchSkip}`;
   if (id === "ssl") return `SSL · ${metrics.sslErrors + metrics.sslSoon}`;
+  if (id === "indexok") return `индекс ✓ · ${metrics.homesIndexed}`;
+  if (id === "indexbad") return `не в индексе · ${metrics.homesNotIndexed}`;
+  if (id === "indexpartial") return `частично · ${metrics.homesPartial}`;
+  if (id === "indexstale") return `stale · ${metrics.homesStale}`;
+  if (id === "indexnoindex") return `noindex · ${metrics.homesNoindex}`;
+  if (id === "indexskip") return `skip · ${metrics.homesSkip}`;
+  if (id === "indexunknown") return `нет ответа · ${metrics.homesUnknown}`;
   return `падения · ${metrics.failed}`;
 }
 
@@ -59,20 +81,26 @@ export function SiteTable({
   metrics,
   filter,
   jumpToken = 0,
+  extendedIndex = false,
+  onExtendedIndexChange,
   onFilterChange,
 }: {
   rows: SiteRow[];
   metrics: Metrics;
   filter: TableFilter;
   jumpToken?: number;
+  extendedIndex?: boolean;
+  onExtendedIndexChange?: (value: boolean) => void;
   onFilterChange: (filter: TableFilter) => void;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("duration");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const compact = useMediaQuery(MOBILE_TABLE);
   const wrapRef = useRef<HTMLElement>(null);
-  const listKey = `${filter}|${query}|${sortKey}|${sortDir}`;
+  const showIndex = hasIndexColumn(rows);
+  const listKey = `${filter}|${query}|${sortKey}|${sortDir}|${extendedIndex}`;
   const [paging, setPaging] = useState({ listKey, shown: MOBILE_PAGE });
   if (paging.listKey !== listKey) {
     setPaging({ listKey, shown: MOBILE_PAGE });
@@ -99,11 +127,28 @@ export function SiteTable({
     node.classList.add("is-jump");
   }, [jumpToken]);
 
+  useEffect(() => {
+    if (!extendedIndex) return;
+    setExpanded((prev) => {
+      const next = { ...prev };
+      for (const row of rows) {
+        if (isIndexAutoExpand(row)) next[row.url] = true;
+      }
+      return next;
+    });
+  }, [extendedIndex, rows]);
+
   function toggleSort(key: SortKey) {
     const next = nextSort(sortKey, sortDir, key);
     setSortKey(next.sortKey);
     setSortDir(next.sortDir);
   }
+
+  function toggleRow(url: string) {
+    setExpanded((prev) => ({ ...prev, [url]: !prev[url] }));
+  }
+
+  const colSpan = showIndex ? 8 : 7;
 
   return (
     <section
@@ -120,9 +165,19 @@ export function SiteTable({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Поиск по домену или NS…"
-          aria-label="Поиск по домену или NS"
+          placeholder="Поиск по домену, NS или индексу…"
+          aria-label="Поиск по домену, NS или индексу"
         />
+        {showIndex && onExtendedIndexChange ? (
+          <label className="index-toggle">
+            <input
+              type="checkbox"
+              checked={extendedIndex}
+              onChange={(event) => onExtendedIndexChange(event.target.checked)}
+            />
+            <span>Расширенный режим</span>
+          </label>
+        ) : null}
         <div className="chips" role="tablist">
           {FILTERS.map((id) => (
             <button
@@ -184,6 +239,14 @@ export function SiteTable({
                 onClick={() => toggleSort("zone")}
               />
               <th>NS</th>
+              {showIndex ? (
+                <SortTh
+                  label="индекс"
+                  active={sortKey === "index"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("index")}
+                />
+              ) : null}
               <SortTh
                 label="SSL"
                 active={sortKey === "ssl"}
@@ -200,7 +263,14 @@ export function SiteTable({
           </thead>
           <tbody>
             {pageRows.map((row, index) => (
-              <SiteRowView key={`${row.url}-${index}`} row={row} />
+              <SiteRowBlock
+                key={`${row.url}-${index}`}
+                row={row}
+                showIndex={showIndex}
+                colSpan={colSpan}
+                expanded={Boolean(expanded[row.url])}
+                onToggle={() => toggleRow(row.url)}
+              />
             ))}
           </tbody>
         </table>
@@ -257,44 +327,133 @@ function sslCellClass(row: SiteRow): string {
   return "mono muted";
 }
 
-function SiteRowView({ row }: { row: SiteRow }) {
+function indexCellClass(row: SiteRow): string {
+  const kind = indexKind(row);
+  if (kind === "ok") return "mono ok-text index-cell";
+  if (kind === "partial") return "mono cloak-text index-cell";
+  if (kind === "bad") return "mono down-text index-cell";
+  if (kind === "noindex") return "mono muted index-cell index-noindex";
+  if (kind === "stale" || kind === "unknown") return "mono cloak-text index-cell";
+  if (kind === "skip") return "mono muted index-cell";
+  return "mono muted index-cell";
+}
+
+function SiteRowBlock({
+  row,
+  showIndex,
+  colSpan,
+  expanded,
+  onToggle,
+}: {
+  row: SiteRow;
+  showIndex: boolean;
+  colSpan: number;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const kind = statusKind(row);
   const nsFail = nsReason(row);
   const match = nsMatchOf(row);
+  const indexRowKind = indexKind(row);
   const tone = nsFail
     ? "ns-bad"
     : kind === "down"
       ? "down"
       : match === false
         ? "ns-mismatch"
-        : kind;
+        : indexRowKind === "bad"
+          ? "index-bad"
+          : indexRowKind === "partial" || indexRowKind === "stale"
+            ? "index-warn"
+            : kind;
+  const canExpand = showIndex && (row.index != null || isIndexSkip(row));
+
   return (
-    <tr className={tone}>
-      <td data-label="состояние">
-        <span className={`status ${nsFail ? "down" : kind}`}>
+    <Fragment>
+      <tr
+        className={`${tone}${expanded ? " is-expanded" : ""}${canExpand ? " is-expandable" : ""}`}
+        onClick={canExpand ? onToggle : undefined}
+        onKeyDown={
+          canExpand
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onToggle();
+                }
+              }
+            : undefined
+        }
+        tabIndex={canExpand ? 0 : undefined}
+        aria-expanded={canExpand ? expanded : undefined}
+      >
+        <td data-label="состояние">
+          <span className={`status ${nsFail ? "down" : kind}`}>
+            <i />
+            {nsFail ? "NS ошибка" : statusKindLabel(kind)}
+          </span>
+        </td>
+        <td data-label="хост" className="host-cell">
+          <a
+            href={row.url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {hostnameOf(row.url)}
+          </a>
+          {canExpand ? (
+            <span className="row-expand-hint">{expanded ? "▾" : "▸"}</span>
+          ) : null}
+        </td>
+        <td data-label="HTTP" className="mono">
+          {statusLabel(row)}
+        </td>
+        <td data-label="зона" className="mono">
+          {zoneOf(row.url)}
+        </td>
+        <NsCell row={row} nsFail={nsFail} match={match} />
+        {showIndex ? (
+          <td data-label="индекс" className={indexCellClass(row)}>
+            <IndexCell row={row} />
+          </td>
+        ) : null}
+        <td data-label="SSL" className={sslCellClass(row)}>
+          {sslLabel(row)}
+        </td>
+        <td data-label="время" className="mono">
+          {formatMs(row.duration)}
+        </td>
+      </tr>
+      {expanded && canExpand ? (
+        <tr className="index-detail-row">
+          <td colSpan={colSpan}>
+            <SiteIndexDetail row={row} />
+          </td>
+        </tr>
+      ) : null}
+    </Fragment>
+  );
+}
+
+function IndexCell({ row }: { row: SiteRow }) {
+  const kind = indexKind(row);
+  const label = indexHomeLabel(row);
+  return (
+    <div className="index-check">
+      {kind === "noindex" ? (
+        <span className="status warn index-badge">
           <i />
-          {nsFail ? "NS ошибка" : statusKindLabel(kind)}
+          noindex
         </span>
-      </td>
-      <td data-label="хост" className="host-cell">
-        <a href={row.url} target="_blank" rel="noreferrer">
-          {hostnameOf(row.url)}
-        </a>
-      </td>
-      <td data-label="HTTP" className="mono">
-        {statusLabel(row)}
-      </td>
-      <td data-label="зона" className="mono">
-        {zoneOf(row.url)}
-      </td>
-      <NsCell row={row} nsFail={nsFail} match={match} />
-      <td data-label="SSL" className={sslCellClass(row)}>
-        {sslLabel(row)}
-      </td>
-      <td data-label="время" className="mono">
-        {formatMs(row.duration)}
-      </td>
-    </tr>
+      ) : null}
+      {kind === "stale" ? (
+        <span className="status warn index-badge">
+          <i />
+          stale
+        </span>
+      ) : null}
+      <span className="index-label">{label}</span>
+    </div>
   );
 }
 

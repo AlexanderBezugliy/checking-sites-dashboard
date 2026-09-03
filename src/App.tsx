@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FleetOverview } from "./components/FleetOverview";
 import { Header } from "./components/Header";
+import { IndexStrip } from "./components/IndexStrip";
 import { KpiGrid } from "./components/KpiGrid";
 import { NsStrip } from "./components/NsStrip";
 import { SiteTable } from "./components/SiteTable";
@@ -12,6 +13,7 @@ export default function App() {
   const { payload, metrics, error, loading, refresh } = useFleetStatus();
   const [filter, setFilter] = useState<TableFilter>("all");
   const [tableJump, setTableJump] = useState(0);
+  const [extendedIndex, setExtendedIndex] = useState(false);
 
   function showInTable(next: TableFilter) {
     setFilter(next);
@@ -36,12 +38,23 @@ export default function App() {
             onShowProblems={() => showInTable("ns")}
             onShowMismatches={() => showInTable("nsbad")}
           />
+          <IndexStrip
+            metrics={metrics}
+            onShowBad={() => showInTable("indexbad")}
+            onShowPartial={() => showInTable("indexpartial")}
+            onShowStale={() => showInTable("indexstale")}
+            onShowNoindex={() => showInTable("indexnoindex")}
+            onShowSkip={() => showInTable("indexskip")}
+            onShowUnknown={() => showInTable("indexunknown")}
+          />
           <FleetOverview payload={payload} metrics={metrics} />
           <SiteTable
             rows={payload.data}
             metrics={metrics}
             filter={filter}
             jumpToken={tableJump}
+            extendedIndex={extendedIndex}
+            onExtendedIndexChange={setExtendedIndex}
             onFilterChange={setFilter}
           />
         </>

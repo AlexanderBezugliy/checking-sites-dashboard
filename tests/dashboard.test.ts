@@ -165,9 +165,13 @@ describe("metrics from live snapshot", () => {
   });
 
   it("treats missing ns_match on the snapshot as no etalon", () => {
-    expect(metrics.nsMatchOk).toBe(0);
+    const withEtalon = snapshot.data.filter((row) => row.ns_match === true).length;
+    const withoutEtalon = snapshot.data.filter(
+      (row) => row.ns_match !== true && row.ns_match !== false,
+    ).length;
+    expect(metrics.nsMatchOk).toBe(withEtalon);
     expect(metrics.nsMatchBad).toBe(0);
-    expect(metrics.nsMatchSkip).toBe(snapshot.data.length);
+    expect(metrics.nsMatchSkip).toBe(withoutEtalon);
     expect(metrics.nsMismatches).toEqual([]);
   });
 

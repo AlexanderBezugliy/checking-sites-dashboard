@@ -37,11 +37,70 @@ export type SiteRow = {
   ns_expected?: string[];
   /** Результат сверки множеств NS. Нет поля / нет эталона — как `null`. */
   ns_match?: NsMatch;
+  /** GSC-проверка. `null` / нет поля — skip. */
+  index?: IndexInfo | null;
+};
+
+export type IndexPage = {
+  url: string;
+  slot?: string;
+  indexed: boolean | null;
+  coverageState?: string | null;
+  verdict?: string | null;
+  lastCrawlTime?: string | null;
+  pageFetchState?: string | null;
+  checked_at?: string | null;
+  error?: string | null;
+  /** Google сегодня не ответил, статус сохранён со вчера. */
+  stale?: true;
+  status_from?: string;
+};
+
+export type IndexSitemap = {
+  source?: string | null;
+  urls?: string[];
+  fetched_at?: string | null;
+  error?: string | null;
+};
+
+export type IndexInfo = {
+  indexed: boolean | null;
+  coverageState?: string | null;
+  verdict?: string | null;
+  lastCrawlTime?: string | null;
+  siteUrl?: string | null;
+  checked_at?: string | null;
+  error?: string | null;
+  noindex?: boolean;
+  pages_total?: number;
+  pages_indexed?: number;
+  pages_checked?: number;
+  sitemap?: IndexSitemap;
+  pages?: IndexPage[];
+};
+
+export type IndexKind =
+  | "ok"
+  | "partial"
+  | "bad"
+  | "noindex"
+  | "stale"
+  | "unknown"
+  | "skip";
+
+export type IndexProblem = {
+  url: string;
+  host: string;
+  reason: string;
+  ratio: string;
 };
 
 export type StatusPayload = {
   last_update: string;
   last_digest_at?: string | null;
+  /** Время последней SEO-проверки (GSC), отдельно от аптайма. */
+  index_last_update?: string | null;
+  index_queue_cursor?: number | null;
   total_sites: number;
   alive_count: number;
   failed_count: number;
@@ -107,6 +166,20 @@ export type Metrics = {
   nsMismatches: NsMismatch[];
   slowest: SiteRow[];
   duplicateUrls: number;
+  homesIndexed: number;
+  homesNotIndexed: number;
+  homesUnknown: number;
+  homesStale: number;
+  homesNoindex: number;
+  homesSkip: number;
+  homesPartial: number;
+  pagesIndexedTotal: number;
+  pagesCheckedTotal: number;
+  indexQueueCursor: number | null;
+  indexProblems: IndexProblem[];
+  indexBad: IndexProblem[];
+  indexStale: IndexProblem[];
+  indexPartial: IndexProblem[];
 };
 
 export type TableFilter =
@@ -119,6 +192,13 @@ export type TableFilter =
   | "nsok"
   | "nsbad"
   | "nsskip"
-  | "ssl";
-export type SortKey = "host" | "status" | "duration" | "zone" | "ssl";
+  | "ssl"
+  | "indexok"
+  | "indexbad"
+  | "indexpartial"
+  | "indexstale"
+  | "indexnoindex"
+  | "indexskip"
+  | "indexunknown";
+export type SortKey = "host" | "status" | "duration" | "zone" | "ssl" | "index";
 export type SortDir = "asc" | "desc";

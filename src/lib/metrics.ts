@@ -1,11 +1,25 @@
 import type {
+  IndexProblem,
   LatencyBucket,
   Metrics,
   NamedCount,
   NsMismatch,
   NsProblem,
+  SiteRow,
   StatusPayload,
 } from "../types";
+import {
+  hasIndexData,
+  indexReason,
+  indexRatioLabel,
+  isIndexBad,
+  isIndexOk,
+  isIndexPartial,
+  isIndexSkip,
+  isIndexStale,
+  isIndexUnknown,
+  isNoindex,
+} from "./index";
 import {
   hostnameOf,
   nsMatchOf,
@@ -45,6 +59,35 @@ function toNamedCounts(map: Map<string, number>): NamedCount[] {
     .sort((a, b) => b.count - a.count);
 }
 
+function indexProblemOf(row: SiteRow): IndexProblem | null {
+  if (isIndexSkip(row) || !row.index) return null;
+  if (!isIndexBad(row) && !isIndexStale(row) && !isIndexPartial(row)) return null;
+  return {
+    url: row.url,
+    host: hostnameOf(row.url),
+    reason: indexReason(row),
+    ratio: indexRatioLabel(row),
+  };
+}
+
+function indexBucket(row: SiteRow): keyof Pick<
+  Metrics,
+  | "homesIndexed"
+  | "homesNotIndexed"
+  | "homesUnknown"
+  | "homesStale"
+  | "homesNoindex"
+  | "homesSkip"
+> | null {
+  if (isIndexSkip(row)) return "homesSkip";
+  if (isNoindex(row)) return "homesNoindex";
+  if (isIndexStale(row)) return "homesStale";
+  if (isIndexUnknown(row)) return "homesUnknown";
+  if (isIndexBad(row)) return "homesNotIndexed";
+  if (isIndexOk(row)) return "homesIndexed";
+  return "homesUnknown";
+}
+
 export function computeMetrics(payload: StatusPayload): Metrics {
   const rows = payload.data ?? [];
   const durations = rows
@@ -57,6 +100,10 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   const urlCounts = new Map<string, number>();
   const nsProblems: NsProblem[] = [];
   const nsMismatches: NsMismatch[] = [];
+  const indexProblems: IndexProblem[] = [];
+  const indexBad: IndexProblem[] = [];
+  const indexStale: IndexProblem[] = [];
+  const indexPartial: IndexProblem[] = [];
 
   let http200 = 0;
   let http302 = 0;
@@ -69,6 +116,15 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   let nsMatchOk = 0;
   let nsMatchBad = 0;
   let nsMatchSkip = 0;
+  let homesIndexed = 0;
+  let homesNotIndexed = 0;
+  let homesUnknown = 0;
+  let homesStale = 0;
+  let homesNoindex = 0;
+  let homesSkip = 0;
+  let homesPartial = 0;
+  let pagesIndexedTotal = 0;
+  let pagesCheckedTotal = 0;
   const sslDays: number[] = [];
 
   for (const row of rows) {
@@ -111,6 +167,28 @@ export function computeMetrics(payload: StatusPayload): Metrics {
         live: row.dns?.ns ?? [],
       });
     } else nsMatchSkip += 1;
+
+    const bucket = indexBucket(row);
+    if (bucket === "homesIndexed") homesIndexed += 1;
+    else if (bucket === "homesNotIndexed") homesNotIndexed += 1;
+    else if (bucket === "homesUnknown") homesUnknown += 1;
+    else if (bucket === "homesStale") homesStale += 1;
+    else if (bucket === "homesNoindex") homesNoindex += 1;
+    else if (bucket === "homesSkip") homesSkip += 1;
+
+    if (isIndexPartial(row)) homesPartial += 1;
+    if (hasIndexData(row)) {
+      pagesIndexedTotal += row.index?.pages_indexed ?? 0;
+      pagesCheckedTotal += row.index?.pages_checked ?? 0;
+    }
+
+    const problem = indexProblemOf(row);
+    if (problem) {
+      indexProblems.push(problem);
+      if (isIndexStale(row)) indexStale.push(problem);
+      else if (isIndexBad(row)) indexBad.push(problem);
+      else if (isIndexPartial(row)) indexPartial.push(problem);
+    }
   }
 
   const buckets: LatencyBucket[] = LATENCY_BUCKETS.map((bucket) => ({
@@ -152,6 +230,20 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     nsMismatches,
     slowest,
     duplicateUrls: [...urlCounts.values()].filter((count) => count > 1).length,
+    homesIndexed,
+    homesNotIndexed,
+    homesUnknown,
+    homesStale,
+    homesNoindex,
+    homesSkip,
+    homesPartial,
+    pagesIndexedTotal,
+    pagesCheckedTotal,
+    indexQueueCursor: payload.index_queue_cursor ?? null,
+    indexProblems,
+    indexBad,
+    indexStale,
+    indexPartial,
   };
 }
 

@@ -4,6 +4,8 @@
 
 Бот `@checkingsites111_bot` пишет в группу **MONITOR** дифф и редкий дайджест. История чата через Bot API не читается, поэтому дашборд берёт тот же `status.json`.
 
+Дашборд **только читает** `status.json` (GitHub raw или локальный снимок). GSC/OAuth и повторные SEO-проверки здесь нет — индексация приходит из монитора checking-sites.
+
 ## Как устроен код
 
 ```
@@ -13,13 +15,14 @@ src/
   hooks/useFleetStatus.ts   загрузка и автообновление
   lib/status.ts             GitHub → локальный снимок
   lib/site.ts               хост, зона, NS, статус строки
+  lib/index.ts              GSC index: skip/stale/noindex/частично
   lib/metrics.ts            агрегаты и текст дайджеста
   lib/table.ts              фильтр и сортировка таблицы
   lib/format.ts             даты и миллисекунды
-  components/               шапка, KPI, обзор, таблица
+  components/               шапка, KPI, NS, индекс, таблица
 ```
 
-Новый функционал (SEO, трафик, история алертов) лучше добавлять отдельным `lib/` + карточкой рядом с `FleetOverview` в `App.tsx`.
+Блок **Google Index** (`IndexStrip`) показывает KPI по главным и внутренним URL, фильтры таблицы (`indexok`, `indexbad`, `indexpartial`, …) и раскрытие строки с `index.pages[]`. В шапке отдельно: «Последняя проверка» (аптайм) и «Индекс обновлён» (`index_last_update`).
 
 ## Команды
 

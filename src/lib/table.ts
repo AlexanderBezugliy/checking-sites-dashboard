@@ -1,5 +1,16 @@
 import type { SiteRow, SortDir, SortKey, TableFilter } from "../types";
 import {
+  hasIndexData,
+  isIndexBad,
+  isIndexOk,
+  isIndexPartial,
+  isIndexSkip,
+  isIndexStale,
+  isIndexUnknown,
+  isNoindex,
+  indexSortScore,
+} from "./index";
+import {
   hostnameOf,
   isSslSoon,
   nsMatchOf,
@@ -19,6 +30,13 @@ export function matchesFilter(row: SiteRow, filter: TableFilter): boolean {
   if (filter === "nsbad") return nsMatchOf(row) === false;
   if (filter === "nsskip") return nsMatchOf(row) == null;
   if (filter === "ssl") return isSslSoon(row);
+  if (filter === "indexok") return isIndexOk(row);
+  if (filter === "indexbad") return isIndexBad(row);
+  if (filter === "indexpartial") return isIndexPartial(row);
+  if (filter === "indexstale") return isIndexStale(row);
+  if (filter === "indexnoindex") return isNoindex(row);
+  if (filter === "indexskip") return isIndexSkip(row);
+  if (filter === "indexunknown") return isIndexUnknown(row);
   return true;
 }
 
@@ -27,13 +45,25 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
   if (!needle) return true;
   const ns = (row.dns?.ns ?? []).join(" ").toLowerCase();
   const expected = (row.ns_expected ?? []).join(" ").toLowerCase();
+  const indexText = [
+    row.index?.coverageState,
+    row.index?.error,
+    row.index?.siteUrl,
+    ...(row.index?.pages ?? []).map((page) => page.url),
+    ...(row.index?.pages ?? []).map((page) => page.slot),
+    ...(row.index?.pages ?? []).map((page) => page.coverageState),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
   return (
     row.url.toLowerCase().includes(needle) ||
     hostnameOf(row.url).toLowerCase().includes(needle) ||
     zoneOf(row.url).toLowerCase().includes(needle) ||
     nsProvider(row.dns?.ns).toLowerCase().includes(needle) ||
     ns.includes(needle) ||
-    expected.includes(needle)
+    expected.includes(needle) ||
+    indexText.includes(needle)
   );
 }
 
@@ -69,6 +99,16 @@ export function filterAndSortRows(
         if (right == null) return -1;
         return direction * (left - right);
       }
+      if (sortKey === "index") {
+        const left = indexSortScore(a);
+        const right = indexSortScore(b);
+        if (left == null && right == null) {
+          return hostnameOf(a.url).localeCompare(hostnameOf(b.url), "ru");
+        }
+        if (left == null) return 1;
+        if (right == null) return -1;
+        return direction * (left - right);
+      }
       return direction * compareRows(a, b, sortKey);
     });
 }
@@ -86,6 +126,16 @@ export function nextSort(
   }
   return {
     sortKey: nextKey,
-    sortDir: nextKey === "host" || nextKey === "zone" || nextKey === "ssl" ? "asc" : "desc",
+    sortDir:
+      nextKey === "host" ||
+      nextKey === "zone" ||
+      nextKey === "ssl" ||
+      nextKey === "index"
+        ? "asc"
+        : "desc",
   };
+}
+
+export function hasIndexColumn(rows: SiteRow[]): boolean {
+  return rows.some((row) => hasIndexData(row) || isIndexSkip(row));
 }

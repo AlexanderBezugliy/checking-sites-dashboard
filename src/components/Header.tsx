@@ -29,6 +29,15 @@ export function Header({ payload, loading, onRefresh }: HeaderProps) {
             ) : null}
           </strong>
         </div>
+        {payload?.index_last_update ? (
+          <div>
+            <span className="label">Индекс обновлён</span>
+            <strong>
+              {formatKyiv(payload.index_last_update)}
+              <em> · {relativeFromNow(payload.index_last_update)}</em>
+            </strong>
+          </div>
+        ) : null}
       </div>
       <ShinyButton className="btn-refresh" onClick={onRefresh} disabled={loading}>
         {loading ? "Обновляю…" : "Обновить"}
