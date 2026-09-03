@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   indexHomeLabel,
   indexKind,
+  indexNotIndexedPageLabels,
+  indexPartialDetail,
   indexRatioLabel,
   isIndexBad,
   isIndexOk,
@@ -78,6 +80,11 @@ describe("index helpers", () => {
     expect(indexHomeLabel(partial)).toBe("~ 8/10");
     expect(isIndexPartial(partial)).toBe(true);
     expect(isIndexOk(partial)).toBe(true);
+    expect(indexNotIndexedPageLabels(partial)).toEqual([
+      "contact-us",
+      "privacy-policy",
+    ]);
+    expect(indexPartialDetail(partial)).toBe("contact-us, privacy-policy");
   });
 
   it("marks stale separately from unknown permission errors", () => {
@@ -129,6 +136,7 @@ describe("index metrics from fixture", () => {
   it("builds problem lists for strip", () => {
     expect(metrics.indexBad).toHaveLength(1);
     expect(metrics.indexPartial).toHaveLength(1);
+    expect(metrics.indexPartial[0]?.reason).toBe("contact-us, privacy-policy");
     expect(metrics.indexStale).toHaveLength(1);
     expect(metrics.indexProblems).toHaveLength(3);
   });

@@ -123,7 +123,11 @@ export function IndexStrip({
               }
             >
               {metrics.indexPartial.slice(0, 8).map((item, index) => (
-                <ProblemItem key={`${item.url}-${index}`} item={item} />
+                <ProblemItem
+                  key={`${item.url}-${index}`}
+                  item={item}
+                  reasonLabel="детали"
+                />
               ))}
             </IssueBlock>
           ) : null}
@@ -207,13 +211,19 @@ function IssueBlock({
   );
 }
 
-function ProblemItem({ item }: { item: IndexProblem }) {
+function ProblemItem({
+  item,
+  reasonLabel = "причина",
+}: {
+  item: IndexProblem;
+  reasonLabel?: string;
+}) {
   return (
     <li>
       <a href={item.url} target="_blank" rel="noreferrer">
         {item.host}
       </a>
-      <p className="index-pair" data-label="причина">
+      <p className="index-pair" data-label={reasonLabel}>
         {item.reason}
       </p>
       <p className="index-pair" data-label="проверено">

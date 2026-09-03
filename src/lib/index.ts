@@ -101,6 +101,47 @@ export function indexProblemPages(row: SiteRow): IndexPage[] {
   );
 }
 
+/** Слоты или хвост URL внутренних страниц с indexed === false (без home). */
+export function indexNotIndexedPageLabels(
+  row: SiteRow,
+  limit = 6,
+): string[] {
+  const labels = indexPages(row)
+    .filter((page) => page.slot !== "home" && page.indexed === false)
+    .map((page) => pageSlotLabel(page));
+  return limit > 0 ? labels.slice(0, limit) : labels;
+}
+
+export function pageSlotLabel(page: IndexPage): string {
+  if (page.slot) return page.slot;
+  try {
+    const path = new URL(page.url).pathname.replace(/^\/+|\/+$/g, "");
+    const tail = path.split("/").filter(Boolean).at(-1);
+    return tail || "home";
+  } catch {
+    return page.url;
+  }
+}
+
+export function indexPartialDetail(row: SiteRow): string {
+  const slots = indexNotIndexedPageLabels(row, 0);
+  if (slots.length) return formatPageLabelList(slots, 5);
+  const checked = row.index?.pages_checked ?? 0;
+  const indexed = row.index?.pages_indexed ?? 0;
+  if (checked > 0 && indexed < checked) {
+    return `частично · ${indexed}/${checked}`;
+  }
+  return "частично";
+}
+
+function formatPageLabelList(labels: string[], maxShown: number): string {
+  if (!labels.length) return "";
+  const shown = labels.slice(0, maxShown);
+  const rest = labels.length - shown.length;
+  const list = shown.join(", ");
+  return rest > 0 ? `${list} +${rest}` : list;
+}
+
 export function pageIndexKind(
   page: IndexPage,
 ): "ok" | "bad" | "stale" | "unknown" {
@@ -140,10 +181,7 @@ export function indexReason(row: SiteRow): string {
     return row.index?.coverageState || "не в индексе";
   }
   if (kind === "partial") {
-    const bad = indexProblemPages(row).filter(
-      (page) => page.slot !== "home" && page.indexed === false,
-    ).length;
-    return bad ? `${bad} стр. не в индексе` : "частично";
+    return indexPartialDetail(row);
   }
   return "в индексе";
 }

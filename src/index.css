@@ -880,6 +880,7 @@ h2 {
 .index-pair {
   margin: 0;
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .index-quick {
