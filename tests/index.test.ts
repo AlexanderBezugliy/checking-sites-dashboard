@@ -8,6 +8,8 @@ import {
   indexNotIndexedPageLabels,
   indexPartialDetail,
   indexRatioLabel,
+  indexReportPages,
+  isCsvIndexSlot,
   isIndexBad,
   isIndexOk,
   isIndexPartial,
@@ -76,15 +78,73 @@ describe("index helpers", () => {
 
   it("uses pages_checked as ratio denominator", () => {
     const partial = snapshot.data.find((item) => item.url.includes("new-vegas"))!;
-    expect(indexRatioLabel(partial)).toBe("8/10");
-    expect(indexHomeLabel(partial)).toBe("~ 8/10");
+    expect(indexRatioLabel(partial)).toBe("7/8");
+    expect(indexHomeLabel(partial)).toBe("~ 7/8");
     expect(isIndexPartial(partial)).toBe(true);
     expect(isIndexOk(partial)).toBe(true);
-    expect(indexNotIndexedPageLabels(partial)).toEqual([
-      "contact-us",
-      "privacy-policy",
+    expect(indexNotIndexedPageLabels(partial)).toEqual(["app"]);
+    expect(indexPartialDetail(partial)).toBe("app");
+    expect(indexReportPages(partial).map((page) => page.slot)).toEqual([
+      "home",
+      "login",
+      "app",
+      "register",
+      "games",
+      "bet",
+      "bonus",
+      "deposit",
     ]);
-    expect(indexPartialDetail(partial)).toBe("contact-us, privacy-policy");
+  });
+
+  it("hides sitemap leftover slots and does not remap bonuses from the URL", () => {
+    const leftover = snapshot.data.find((item) => item.url.includes("new-vegas"))!;
+    const slots = leftover.index?.pages?.map((page) => page.slot) ?? [];
+    expect(slots).toContain("contact-us");
+    expect(slots).toContain("privacy-policy");
+    expect(slots).toContain("bonuses");
+    expect(indexReportPages(leftover).some((page) => page.slot === "bonuses")).toBe(
+      false,
+    );
+    expect(indexNotIndexedPageLabels(leftover)).not.toContain("contact-us");
+    expect(indexNotIndexedPageLabels(leftover)).not.toContain("privacy-policy");
+    expect(indexNotIndexedPageLabels(leftover)).not.toContain("bonuses");
+    expect(isCsvIndexSlot("bonus")).toBe(true);
+    expect(isCsvIndexSlot("bonuses")).toBe(false);
+    expect(isCsvIndexSlot("-bonus")).toBe(false);
+  });
+
+  it("does not mark a site partial only because legal sitemap pages are noindex", () => {
+    const legalOnly = row({
+      url: "https://legal-only.gb.net",
+      status: 200,
+      index: {
+        indexed: true,
+        noindex: false,
+        pages_total: 8,
+        pages_indexed: 8,
+        pages_checked: 8,
+        pages: [
+          {
+            url: "https://legal-only.gb.net/",
+            slot: "home",
+            indexed: true,
+          },
+          {
+            url: "https://legal-only.gb.net/login/",
+            slot: "login",
+            indexed: true,
+          },
+          {
+            url: "https://legal-only.gb.net/privacy-policy/",
+            slot: "privacy-policy",
+            indexed: false,
+          },
+        ],
+      },
+    });
+    expect(isIndexPartial(legalOnly)).toBe(false);
+    expect(indexKind(legalOnly)).toBe("ok");
+    expect(indexNotIndexedPageLabels(legalOnly)).toEqual([]);
   });
 
   it("marks stale separately from unknown permission errors", () => {
@@ -136,7 +196,7 @@ describe("index metrics from fixture", () => {
   it("builds problem lists for strip", () => {
     expect(metrics.indexBad).toHaveLength(1);
     expect(metrics.indexPartial).toHaveLength(1);
-    expect(metrics.indexPartial[0]?.reason).toBe("contact-us, privacy-policy");
+    expect(metrics.indexPartial[0]?.reason).toBe("app");
     expect(metrics.indexStale).toHaveLength(1);
     expect(metrics.indexProblems).toHaveLength(3);
   });
@@ -158,5 +218,12 @@ describe("index table filters", () => {
   it("does not mix noindex into indexbad", () => {
     const bad = filterAndSortRows(rows, "", "indexbad", "host", "asc");
     expect(bad.every((item) => !item.index?.noindex)).toBe(true);
+  });
+
+  it("does not search leftover sitemap slots", () => {
+    const byPrivacy = filterAndSortRows(rows, "privacy-policy", "all", "host", "asc");
+    expect(byPrivacy.some((item) => item.url.includes("new-vegas"))).toBe(false);
+    const byApp = filterAndSortRows(rows, "app", "all", "host", "asc");
+    expect(byApp.some((item) => item.url.includes("new-vegas"))).toBe(true);
   });
 });

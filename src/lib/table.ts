@@ -1,6 +1,7 @@
 import type { SiteRow, SortDir, SortKey, TableFilter } from "../types";
 import {
   hasIndexData,
+  indexReportPages,
   isIndexBad,
   isIndexOk,
   isIndexPartial,
@@ -45,13 +46,14 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
   if (!needle) return true;
   const ns = (row.dns?.ns ?? []).join(" ").toLowerCase();
   const expected = (row.ns_expected ?? []).join(" ").toLowerCase();
+  const indexPages = indexReportPages(row);
   const indexText = [
     row.index?.coverageState,
     row.index?.error,
     row.index?.siteUrl,
-    ...(row.index?.pages ?? []).map((page) => page.url),
-    ...(row.index?.pages ?? []).map((page) => page.slot),
-    ...(row.index?.pages ?? []).map((page) => page.coverageState),
+    ...indexPages.map((page) => page.url),
+    ...indexPages.map((page) => page.slot),
+    ...indexPages.map((page) => page.coverageState),
   ]
     .filter(Boolean)
     .join(" ")

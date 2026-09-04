@@ -13,6 +13,13 @@ import {
   sslDaysLeft,
   sslLabel,
 } from "../src/lib/site";
+import {
+  indexNotIndexedPageLabels,
+  indexPartialDetail,
+  indexReportPages,
+  isCsvIndexSlot,
+  isIndexPartial,
+} from "../src/lib/index";
 import { filterAndSortRows } from "../src/lib/table";
 import type { StatusPayload } from "../src/types";
 
@@ -209,6 +216,34 @@ describe("live GitHub status.json", () => {
     if (noEtalon) {
       expect(nsMatchOf(noEtalon)).toBeNull();
       expect(noEtalon.ns_expected ?? []).toEqual([]);
+    }
+
+    const vegas = byUrl.get("https://new-vegas-casino.gb.net");
+    expect(vegas).toBeTruthy();
+    if (vegas) {
+      const reportSlots = indexReportPages(vegas).map((page) => page.slot);
+      expect(reportSlots.every((slot) => isCsvIndexSlot(slot))).toBe(true);
+      expect(reportSlots).not.toContain("contact-us");
+      expect(reportSlots).not.toContain("privacy-policy");
+      expect(reportSlots).not.toContain("bonuses");
+      expect(indexNotIndexedPageLabels(vegas)).not.toContain("contact-us");
+      expect(indexNotIndexedPageLabels(vegas)).not.toContain("privacy-policy");
+      const leftoverOnly =
+        (vegas.index?.pages ?? []).some(
+          (page) => page.slot === "privacy-policy" && page.indexed === false,
+        ) &&
+        !indexReportPages(vegas).some(
+          (page) => page.slot !== "home" && page.indexed === false,
+        );
+      if (leftoverOnly) {
+        expect(isIndexPartial(vegas)).toBe(false);
+      }
+    }
+
+    for (const item of metrics.indexPartial) {
+      expect(item.reason).not.toMatch(/contact-us|privacy-policy|bonuses|terms-of-service/);
+      const site = byUrl.get(item.url);
+      if (site) expect(indexPartialDetail(site)).toBe(item.reason);
     }
   });
 });

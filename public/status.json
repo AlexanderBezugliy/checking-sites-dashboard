@@ -49,9 +49,9 @@
         "checked_at": "2026-09-03T11:03:41.801Z",
         "error": null,
         "noindex": false,
-        "pages_total": 13,
-        "pages_indexed": 8,
-        "pages_checked": 10,
+        "pages_total": 8,
+        "pages_indexed": 7,
+        "pages_checked": 8,
         "sitemap": {
           "urls": [
             "https://new-vegas-casino.gb.net/about-us/",
@@ -84,8 +84,52 @@
             "error": null
           },
           {
-            "url": "https://new-vegas-casino.gb.net/bonuses/",
-            "slot": "bonuses",
+            "url": "https://new-vegas-casino.gb.net/login/",
+            "slot": "login",
+            "indexed": true,
+            "coverageState": "Submitted and indexed",
+            "verdict": "PASS",
+            "lastCrawlTime": "2026-08-27T18:56:02Z",
+            "pageFetchState": "SUCCESSFUL",
+            "checked_at": "2026-09-03T11:03:41.801Z",
+            "error": null
+          },
+          {
+            "url": "https://new-vegas-casino.gb.net/mobile-application/",
+            "slot": "app",
+            "indexed": false,
+            "coverageState": "URL is unknown to Google",
+            "verdict": "NEUTRAL",
+            "lastCrawlTime": null,
+            "pageFetchState": "PAGE_FETCH_STATE_UNSPECIFIED",
+            "checked_at": "2026-09-03T11:03:41.801Z",
+            "error": null
+          },
+          {
+            "url": "https://new-vegas-casino.gb.net/registration/",
+            "slot": "register",
+            "indexed": true,
+            "coverageState": "Submitted and indexed",
+            "verdict": "PASS",
+            "lastCrawlTime": "2026-07-02T15:19:51Z",
+            "pageFetchState": "SUCCESSFUL",
+            "checked_at": "2026-09-03T11:03:41.801Z",
+            "error": null
+          },
+          {
+            "url": "https://new-vegas-casino.gb.net/slots-games/",
+            "slot": "games",
+            "indexed": true,
+            "coverageState": "Submitted and indexed",
+            "verdict": "PASS",
+            "lastCrawlTime": "2026-08-19T18:20:47Z",
+            "pageFetchState": "SUCCESSFUL",
+            "checked_at": "2026-09-03T11:03:41.801Z",
+            "error": null
+          },
+          {
+            "url": "https://new-vegas-casino.gb.net/bet/",
+            "slot": "bet",
             "indexed": true,
             "coverageState": "Submitted and indexed",
             "verdict": "PASS",
@@ -95,12 +139,12 @@
             "error": null
           },
           {
-            "url": "https://new-vegas-casino.gb.net/contact-us/",
-            "slot": "contact-us",
-            "indexed": false,
-            "coverageState": "Excluded by ‘noindex’ tag",
-            "verdict": "NEUTRAL",
-            "lastCrawlTime": "2026-05-27T22:52:54Z",
+            "url": "https://new-vegas-casino.gb.net/bonuses/",
+            "slot": "bonus",
+            "indexed": true,
+            "coverageState": "Submitted and indexed",
+            "verdict": "PASS",
+            "lastCrawlTime": "2026-08-19T18:20:11Z",
             "pageFetchState": "SUCCESSFUL",
             "checked_at": "2026-09-03T11:03:41.801Z",
             "error": null
@@ -117,23 +161,12 @@
             "error": null
           },
           {
-            "url": "https://new-vegas-casino.gb.net/slots-games/",
-            "slot": "slots-games",
-            "indexed": true,
-            "coverageState": "Submitted and indexed",
-            "verdict": "PASS",
-            "lastCrawlTime": "2026-08-19T18:20:47Z",
-            "pageFetchState": "SUCCESSFUL",
-            "checked_at": "2026-09-03T11:03:41.801Z",
-            "error": null
-          },
-          {
-            "url": "https://new-vegas-casino.gb.net/login/",
-            "slot": "login",
-            "indexed": true,
-            "coverageState": "Submitted and indexed",
-            "verdict": "PASS",
-            "lastCrawlTime": "2026-08-27T18:56:02Z",
+            "url": "https://new-vegas-casino.gb.net/contact-us/",
+            "slot": "contact-us",
+            "indexed": false,
+            "coverageState": "Excluded by ‘noindex’ tag",
+            "verdict": "NEUTRAL",
+            "lastCrawlTime": "2026-05-27T22:52:54Z",
             "pageFetchState": "SUCCESSFUL",
             "checked_at": "2026-09-03T11:03:41.801Z",
             "error": null
@@ -150,35 +183,13 @@
             "error": null
           },
           {
-            "url": "https://new-vegas-casino.gb.net/registration/",
-            "slot": "registration",
-            "indexed": true,
-            "coverageState": "Submitted and indexed",
-            "verdict": "PASS",
-            "lastCrawlTime": "2026-07-02T15:19:51Z",
-            "pageFetchState": "SUCCESSFUL",
-            "checked_at": "2026-09-03T11:03:41.801Z",
-            "error": null
-          },
-          {
-            "url": "https://new-vegas-casino.gb.net/safe-gambling/",
-            "slot": "safe-gambling",
-            "indexed": true,
-            "coverageState": "Submitted and indexed",
-            "verdict": "PASS",
-            "lastCrawlTime": "2026-08-27T22:47:31Z",
-            "pageFetchState": "SUCCESSFUL",
-            "checked_at": "2026-09-03T11:03:41.801Z",
-            "error": null
-          },
-          {
-            "url": "https://new-vegas-casino.gb.net/terms-of-service/",
-            "slot": "terms-of-service",
-            "indexed": true,
-            "coverageState": "Submitted and indexed",
-            "verdict": "PASS",
-            "lastCrawlTime": "2026-08-24T00:04:48Z",
-            "pageFetchState": "SUCCESSFUL",
+            "url": "https://new-vegas-casino.gb.net/bonuses/",
+            "slot": "bonuses",
+            "indexed": false,
+            "coverageState": "URL is unknown to Google",
+            "verdict": "NEUTRAL",
+            "lastCrawlTime": null,
+            "pageFetchState": "PAGE_FETCH_STATE_UNSPECIFIED",
             "checked_at": "2026-09-03T11:03:41.801Z",
             "error": null
           }

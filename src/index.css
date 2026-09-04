@@ -1024,16 +1024,19 @@ table.index-pages th {
 }
 
 .index-page-url a {
-  font-weight: 500;
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 11px;
   overflow-wrap: anywhere;
 }
 
 .index-slot {
   display: block;
-  margin-top: 2px;
-  color: var(--muted);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .index-stale-from {

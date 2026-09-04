@@ -22,7 +22,7 @@ src/
   components/               шапка, KPI, NS, индекс, таблица
 ```
 
-Блок **Google Index** (`IndexStrip`) показывает KPI по главным и внутренним URL, фильтры таблицы (`indexok`, `indexbad`, `indexpartial`, …) и раскрытие строки с `index.pages[]`. В шапке отдельно: «Последняя проверка» (аптайм) и «Индекс обновлён» (`index_last_update`).
+Блок **Google Index** (`IndexStrip`) показывает KPI по главным и слотам из `sites.csv` (`bonus`, `app`, …), фильтры таблицы и раскрытие строки с `index.pages[]`. В шапке отдельно: «Последняя проверка» (аптайм) и «Индекс обновлён» (`index_last_update`). `index.sitemap` — справочник, не список для UI.
 
 ## Команды
 

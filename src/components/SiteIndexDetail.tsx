@@ -1,11 +1,12 @@
 import { formatKyiv } from "../lib/format";
 import {
   indexErrorLabel,
-  indexPages,
   indexRatioLabel,
+  indexReportPages,
   isIndexSkip,
   pageIndexKind,
   pageIndexLabel,
+  pageSlotLabel,
 } from "../lib/index";
 import type { SiteRow } from "../types";
 
@@ -28,8 +29,8 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
     );
   }
 
-  const pages = indexPages(row);
-  const sitemapTotal = info.sitemap?.urls?.length ?? info.pages_total ?? 0;
+  const pages = indexReportPages(row);
+  const slotTotal = info.pages_total ?? pages.length;
 
   return (
     <div className="index-detail">
@@ -41,15 +42,7 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
         <p>
           <span className="label">Проверено</span>
           <strong>{indexRatioLabel(row)}</strong>
-          {sitemapTotal ? (
-            <em>
-              {" "}
-              · в sitemap {sitemapTotal}
-              {info.pages_checked != null && info.pages_checked < sitemapTotal
-                ? ` · очередь ${info.pages_checked}/${sitemapTotal}`
-                : null}
-            </em>
-          ) : null}
+          {slotTotal ? <em> · слотов {slotTotal}</em> : null}
         </p>
         {info.checked_at ? (
           <p>
@@ -67,7 +60,7 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
           <table className="index-pages">
             <thead>
               <tr>
-                <th>URL</th>
+                <th>страница</th>
                 <th>статус</th>
                 <th>coverage</th>
                 <th>проверка</th>
@@ -76,15 +69,14 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
             <tbody>
               {pages.map((page) => {
                 const kind = pageIndexKind(page);
+                const slot = pageSlotLabel(page);
                 return (
                   <tr key={page.url} className={`index-page-${kind}`}>
                     <td className="index-page-url">
+                      <span className="index-slot">{slot}</span>
                       <a href={page.url} target="_blank" rel="noreferrer">
                         {page.url.replace(/^https?:\/\//, "")}
                       </a>
-                      {page.slot ? (
-                        <span className="index-slot">{page.slot}</span>
-                      ) : null}
                     </td>
                     <td>
                       <span className={`status index-page-badge ${kind}`}>

@@ -43,6 +43,7 @@ export type SiteRow = {
 
 export type IndexPage = {
   url: string;
+  /** Имя слота из sites.csv (`bonus`, `app`). Не хвост URL. */
   slot?: string;
   indexed: boolean | null;
   coverageState?: string | null;

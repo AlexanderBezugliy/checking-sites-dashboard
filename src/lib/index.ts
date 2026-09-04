@@ -2,6 +2,32 @@ import type { IndexKind, IndexPage, SiteRow } from "../types";
 
 const SKIP_ERROR_RE = /нет в sites\.csv|нет account/i;
 
+/** Слоты колонки `pages` в sites.csv. Хвосты sitemap (contact-us, bonuses) сюда не входят. */
+export const CSV_INDEX_SLOTS = [
+  "home",
+  "login",
+  "app",
+  "register",
+  "games",
+  "bet",
+  "bonus",
+  "deposit",
+  "withdrawal",
+  "payments",
+  "faq",
+  "casino",
+] as const;
+
+export type CsvIndexSlot = (typeof CSV_INDEX_SLOTS)[number];
+
+const CSV_INDEX_SLOT_SET = new Set<string>(CSV_INDEX_SLOTS);
+
+export function isCsvIndexSlot(slot: string | undefined | null): boolean {
+  if (!slot) return false;
+  if (slot.startsWith("-")) return false;
+  return CSV_INDEX_SLOT_SET.has(slot.toLowerCase());
+}
+
 export function isIndexSkip(row: SiteRow): boolean {
   if (row.index == null) return true;
   return SKIP_ERROR_RE.test(row.index.error ?? "");
@@ -19,9 +45,14 @@ export function indexPages(row: SiteRow): IndexPage[] {
   return row.index?.pages ?? [];
 }
 
+/** Страницы отчёта: только CSV-слоты. Старые sitemap-имена скрываются, без маппинга URL. */
+export function indexReportPages(row: SiteRow): IndexPage[] {
+  return indexPages(row).filter((page) => isCsvIndexSlot(page.slot));
+}
+
 export function isIndexStale(row: SiteRow): boolean {
   if (isIndexSkip(row)) return false;
-  return indexPages(row).some((page) => page.stale === true);
+  return indexReportPages(row).some((page) => page.stale === true);
 }
 
 export function isIndexUnknown(row: SiteRow): boolean {
@@ -41,13 +72,9 @@ export function isIndexOk(row: SiteRow): boolean {
 export function isIndexPartial(row: SiteRow): boolean {
   const info = row.index;
   if (!info || info.indexed !== true) return false;
-  const pages = info.pages ?? [];
-  if (pages.some((page) => page.slot !== "home" && page.indexed === false)) {
-    return true;
-  }
-  const checked = info.pages_checked ?? 0;
-  const indexed = info.pages_indexed ?? 0;
-  return pages.length > 0 && indexed < checked;
+  return indexReportPages(row).some(
+    (page) => page.slot !== "home" && page.indexed === false,
+  );
 }
 
 /** Взаимоисключающий вид для компактной подписи. */
@@ -93,7 +120,7 @@ export function indexSortScore(row: SiteRow): number | null {
 }
 
 export function indexProblemPages(row: SiteRow): IndexPage[] {
-  return indexPages(row).filter(
+  return indexReportPages(row).filter(
     (page) =>
       page.stale === true ||
       page.indexed === false ||
@@ -101,26 +128,21 @@ export function indexProblemPages(row: SiteRow): IndexPage[] {
   );
 }
 
-/** Слоты или хвост URL внутренних страниц с indexed === false (без home). */
+/** CSV-имена внутренних страниц с indexed === false (без home). */
 export function indexNotIndexedPageLabels(
   row: SiteRow,
   limit = 6,
 ): string[] {
-  const labels = indexPages(row)
+  const labels = indexReportPages(row)
     .filter((page) => page.slot !== "home" && page.indexed === false)
-    .map((page) => pageSlotLabel(page));
+    .map((page) => pageSlotLabel(page))
+    .filter(Boolean);
   return limit > 0 ? labels.slice(0, limit) : labels;
 }
 
 export function pageSlotLabel(page: IndexPage): string {
-  if (page.slot) return page.slot;
-  try {
-    const path = new URL(page.url).pathname.replace(/^\/+|\/+$/g, "");
-    const tail = path.split("/").filter(Boolean).at(-1);
-    return tail || "home";
-  } catch {
-    return page.url;
-  }
+  if (!isCsvIndexSlot(page.slot)) return "";
+  return page.slot as string;
 }
 
 export function indexPartialDetail(row: SiteRow): string {
