@@ -1,7 +1,6 @@
 import { formatKyiv } from "../lib/format";
 import {
   indexErrorLabel,
-  indexRatioLabel,
   indexReportPages,
   isIndexSkip,
   pageIndexKind,
@@ -30,31 +29,9 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
   }
 
   const pages = indexReportPages(row);
-  const slotTotal = info.pages_total ?? pages.length;
 
   return (
     <div className="index-detail">
-      <div className="index-detail-meta">
-        <p>
-          <span className="label">Главная</span>
-          <strong>{info.coverageState || "—"}</strong>
-        </p>
-        <p>
-          <span className="label">Проверено</span>
-          <strong>{indexRatioLabel(row)}</strong>
-          {slotTotal ? <em> · слотов {slotTotal}</em> : null}
-        </p>
-        {info.checked_at ? (
-          <p>
-            <span className="label">Проверка</span>
-            <strong>{formatKyiv(info.checked_at)}</strong>
-          </p>
-        ) : null}
-        {info.error ? (
-          <p className="index-detail-error">{indexErrorLabel(info.error)}</p>
-        ) : null}
-      </div>
-
       {pages.length ? (
         <div className="index-detail-scroll">
           <table className="index-pages">

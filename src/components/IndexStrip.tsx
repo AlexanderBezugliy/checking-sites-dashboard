@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Metrics, IndexProblem } from "../types";
+import { NsSummary } from "./NsStrip";
 import { ShinyButton } from "./ShinyButton";
 
 export function IndexStrip({
@@ -36,6 +37,7 @@ export function IndexStrip({
 
   return (
     <section className={`index-strip ${tone} reveal delay-1`}>
+      <NsSummary metrics={metrics} />
       <div className="index-top">
         <div className="index-head">
           <h2>Google Index</h2>
@@ -50,11 +52,11 @@ export function IndexStrip({
             </p>
           )}
           <p className="index-fleet caption">
-            Страниц проверено {metrics.pagesCheckedTotal} · в индексе{" "}
-            {metrics.pagesIndexedTotal}
-            {metrics.indexQueueCursor != null
-              ? ` · очередь URL: ${metrics.indexQueueCursor}`
-              : null}
+            <span>Страниц проверено {metrics.pagesCheckedTotal}</span>
+            <span>в индексе {metrics.pagesIndexedTotal}</span>
+            {metrics.indexQueueCursor != null ? (
+              <span>очередь URL: {metrics.indexQueueCursor}</span>
+            ) : null}
           </p>
         </div>
 

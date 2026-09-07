@@ -9,6 +9,7 @@ import {
   nsProvider,
   nsReason,
   statusKind,
+  isSiteUp,
   zoneOf,
 } from "../src/lib/site";
 import { computeMetrics, httpMixParts } from "../src/lib/metrics";
@@ -65,6 +66,34 @@ describe("site helpers", () => {
     expect(statusKind(row({ url: "https://a.com", status: "DNS_ERROR", alive: false }))).toBe(
       "down",
     );
+  });
+
+  it("treats 200, 302 and cloak 503 as up", () => {
+    expect(isSiteUp(row({ url: "https://a.com", status: 200, alive: true }))).toBe(true);
+    expect(
+      isSiteUp(
+        row({
+          url: "https://b.com",
+          status: 302,
+          alive: true,
+          redirect: { status: 302, location: "/", foreign: false },
+        }),
+      ),
+    ).toBe(true);
+    expect(isSiteUp(row({ url: "https://c.com", status: 503, alive: true }))).toBe(true);
+    expect(isSiteUp(row({ url: "https://d.com", status: "DNS_ERROR", alive: false }))).toBe(
+      false,
+    );
+    expect(
+      isSiteUp(
+        row({
+          url: "https://e.com",
+          status: 302,
+          alive: true,
+          redirect: { status: 302, location: "https://other.com", foreign: true },
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("explains NS failures", () => {

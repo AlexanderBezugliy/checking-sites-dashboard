@@ -3,6 +3,44 @@ import { formatNsHosts } from "../lib/site";
 import type { Metrics, NsMismatch, NsProblem } from "../types";
 import { ShinyButton } from "./ShinyButton";
 
+export function NsSummary({ metrics }: { metrics: Metrics }) {
+  const failed = metrics.nsProblems.length;
+  const ok = metrics.nsOk;
+  const mismatched = metrics.nsMatchBad;
+
+  return (
+    <div className="ns-top">
+      <div className="ns-head">
+        <h2>NS-серверы</h2>
+        {failed ? (
+          <p className="ns-status down">
+            {failed} из {metrics.total} с ошибкой DNS/NS
+          </p>
+        ) : (
+          <p className="ns-status ok">
+            Все {ok} доменов резолвятся — NS отвечают
+          </p>
+        )}
+      </div>
+
+      <ul className="ns-stats">
+        <li className="is-ok">
+          <span>ОК</span>
+          <b>{metrics.nsMatchOk}</b>
+        </li>
+        <li className={mismatched ? "is-down" : "is-ok"}>
+          <span>не совпало</span>
+          <b>{mismatched}</b>
+        </li>
+        <li>
+          <span>без эталона</span>
+          <b>{metrics.nsMatchSkip}</b>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 export function NsStrip({
   metrics,
   onShowProblems,
@@ -13,52 +51,13 @@ export function NsStrip({
   onShowMismatches?: () => void;
 }) {
   const failed = metrics.nsProblems.length;
-  const ok = metrics.nsOk;
   const mismatched = metrics.nsMatchBad;
   const tone = failed ? "alert" : mismatched ? "warn" : "ok";
 
+  if (!failed && !mismatched) return null;
+
   return (
     <section className={`ns-strip ${tone} reveal delay-1`}>
-      <div className="ns-top">
-        <div className="ns-head">
-          <h2>NS-серверы</h2>
-          {failed ? (
-            <p className="ns-status down">
-              {failed} из {metrics.total} с ошибкой DNS/NS
-            </p>
-          ) : (
-            <p className="ns-status ok">
-              Все {ok} доменов резолвятся — NS отвечают
-            </p>
-          )}
-        </div>
-
-        <ul className="ns-stats">
-          <li className="is-ok">
-            <span>ОК</span>
-            <b>{metrics.nsMatchOk}</b>
-          </li>
-          <li className={mismatched ? "is-down" : "is-ok"}>
-            <span>не совпало</span>
-            <b>{mismatched}</b>
-          </li>
-          <li>
-            <span>без эталона</span>
-            <b>{metrics.nsMatchSkip}</b>
-          </li>
-        </ul>
-
-        <ul className="ns-providers">
-          {metrics.nsProviders.map((item) => (
-            <li key={item.name}>
-              <span>{item.name}</span>
-              <em>{item.count}</em>
-            </li>
-          ))}
-          {metrics.nsProviders.length === 0 ? <li>Нет NS-записей</li> : null}
-        </ul>
-      </div>
-
       {mismatched || failed ? (
         <div className="ns-board">
           {mismatched ? (

@@ -79,7 +79,7 @@ describe("index helpers", () => {
   it("uses pages_checked as ratio denominator", () => {
     const partial = snapshot.data.find((item) => item.url.includes("new-vegas"))!;
     expect(indexRatioLabel(partial)).toBe("7/8");
-    expect(indexHomeLabel(partial)).toBe("~ 7/8");
+    expect(indexHomeLabel(partial)).toBe("7/8");
     expect(isIndexPartial(partial)).toBe(true);
     expect(isIndexOk(partial)).toBe(true);
     expect(indexNotIndexedPageLabels(partial)).toEqual(["app"]);

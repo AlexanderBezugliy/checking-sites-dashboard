@@ -1,7 +1,19 @@
+import { formatKyiv, relativeFromNow } from "../lib/format";
 import { httpMixParts } from "../lib/metrics";
-import type { Metrics } from "../types";
+import type { Metrics, StatusPayload } from "../types";
+import { ShinyButton } from "./ShinyButton";
 
-export function KpiGrid({ metrics }: { metrics: Metrics }) {
+export function KpiGrid({
+  metrics,
+  payload,
+  loading,
+  onRefresh,
+}: {
+  metrics: Metrics;
+  payload: StatusPayload;
+  loading: boolean;
+  onRefresh: () => void;
+}) {
   const nsFailed = metrics.nsProblems.length;
   const mix = httpMixParts(metrics);
   const troubled = metrics.failed + nsFailed;
@@ -10,21 +22,44 @@ export function KpiGrid({ metrics }: { metrics: Metrics }) {
   return (
     <section className="summary reveal">
       <article className={troubled ? "summary-health is-down" : "summary-health is-ok"}>
-        <p className="summary-title">
-          {troubled ? `Проблемы: ${troubled}` : "Online"}
-        </p>
-        <p className="summary-frac">
-          <b>{metrics.alive}</b>
-          <span> / {metrics.total}</span>
-        </p>
-        <ul className="summary-flags">
-          <li className={metrics.failed ? "is-down" : "is-ok"}>
-            Падения <b>{metrics.failed}</b>
-          </li>
-          <li className={nsFailed ? "is-down" : "is-ok"}>
-            NS <b>{nsFailed}</b>
-          </li>
-        </ul>
+        <div className="summary-health-main">
+          <p className="summary-title">
+            {troubled ? `Проблемы: ${troubled}` : "Online"}
+          </p>
+          <p className="summary-frac">
+            <b>{metrics.alive}</b>
+            <span> / {metrics.total}</span>
+          </p>
+          <ul className="summary-flags">
+            <li className={metrics.failed ? "is-down" : "is-ok"}>
+              Падения <b>{metrics.failed}</b>
+            </li>
+            <li className={nsFailed ? "is-down" : "is-ok"}>
+              NS <b>{nsFailed}</b>
+            </li>
+          </ul>
+        </div>
+        <div className="summary-meta">
+          <div>
+            <span className="label">Последняя проверка</span>
+            <strong>
+              {formatKyiv(payload.last_update)}
+              <em> · {relativeFromNow(payload.last_update)}</em>
+            </strong>
+          </div>
+          {payload.index_last_update ? (
+            <div>
+              <span className="label">Индекс обновлён</span>
+              <strong>
+                {formatKyiv(payload.index_last_update)}
+                <em> · {relativeFromNow(payload.index_last_update)}</em>
+              </strong>
+            </div>
+          ) : null}
+          <ShinyButton className="btn-refresh" onClick={onRefresh} disabled={loading}>
+            {loading ? "Обновляю…" : "Обновить"}
+          </ShinyButton>
+        </div>
       </article>
 
       <article className="summary-mix">

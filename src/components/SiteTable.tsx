@@ -1,43 +1,31 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
-import { formatMs, formatRowCount } from "../lib/format";
+import { formatMs } from "../lib/format";
 import {
   indexHomeLabel,
   indexKind,
-  isIndexAutoExpand,
   isIndexSkip,
 } from "../lib/index";
 import {
-  formatNsHosts,
   hostnameOf,
+  isSiteUp,
   nsMatchOf,
   nsReason,
   sslDaysLeft,
   sslLabel,
   SSL_WARN_DAYS,
-  statusKind,
-  statusKindLabel,
-  statusLabel,
-  zoneOf,
 } from "../lib/site";
 import { filterAndSortRows, hasIndexColumn, nextSort } from "../lib/table";
 import type { Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
+import { MenuSelect, type MenuGroup } from "./MenuSelect";
 import { SiteIndexDetail } from "./SiteIndexDetail";
 
-const MOBILE_PAGE = 10;
+const PREVIEW_ROWS = 10;
 const MOBILE_TABLE = "(max-width: 720px)";
 
-const FILTERS: TableFilter[] = [
-  "all",
-  "200",
-  "302",
-  "503",
-  "down",
-  "ns",
-  "nsok",
-  "nsbad",
-  "nsskip",
-  "ssl",
+const FILTER_HTTP: TableFilter[] = ["all", "200", "302", "503", "down", "ssl"];
+const FILTER_NS: TableFilter[] = ["ns", "nsok", "nsbad", "nsskip"];
+const FILTER_INDEX: TableFilter[] = [
   "indexok",
   "indexbad",
   "indexpartial",
@@ -49,31 +37,57 @@ const FILTERS: TableFilter[] = [
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "host", label: "хост" },
-  { key: "status", label: "HTTP" },
-  { key: "zone", label: "зона" },
   { key: "ssl", label: "SSL" },
   { key: "index", label: "индекс" },
   { key: "duration", label: "время" },
 ];
 
-function filterCaption(id: TableFilter, metrics: Metrics): string {
-  if (id === "all") return `все ${metrics.total}`;
-  if (id === "200") return `200 · ${metrics.http200}`;
-  if (id === "302") return `302 · ${metrics.http302}`;
-  if (id === "503") return `503 · ${metrics.cloak503}`;
-  if (id === "ns") return `NS · ${metrics.nsProblems.length}`;
-  if (id === "nsok") return `совпало · ${metrics.nsMatchOk}`;
-  if (id === "nsbad") return `не совпало · ${metrics.nsMatchBad}`;
-  if (id === "nsskip") return `без эталона · ${metrics.nsMatchSkip}`;
-  if (id === "ssl") return `SSL · ${metrics.sslErrors + metrics.sslSoon}`;
-  if (id === "indexok") return `индекс ✓ · ${metrics.homesIndexed}`;
-  if (id === "indexbad") return `не в индексе · ${metrics.homesNotIndexed}`;
-  if (id === "indexpartial") return `частично · ${metrics.homesPartial}`;
-  if (id === "indexstale") return `stale · ${metrics.homesStale}`;
-  if (id === "indexnoindex") return `noindex · ${metrics.homesNoindex}`;
-  if (id === "indexskip") return `skip · ${metrics.homesSkip}`;
-  if (id === "indexunknown") return `нет ответа · ${metrics.homesUnknown}`;
-  return `падения · ${metrics.failed}`;
+function filterCaption(
+  id: TableFilter,
+  metrics: Metrics,
+): { label: string; count: number } {
+  if (id === "all") return { label: "все", count: metrics.total };
+  if (id === "200") return { label: "200", count: metrics.http200 };
+  if (id === "302") return { label: "302", count: metrics.http302 };
+  if (id === "503") return { label: "503", count: metrics.cloak503 };
+  if (id === "ns") return { label: "NS", count: metrics.nsProblems.length };
+  if (id === "nsok") return { label: "совпало", count: metrics.nsMatchOk };
+  if (id === "nsbad") return { label: "не совпало", count: metrics.nsMatchBad };
+  if (id === "nsskip") return { label: "без эталона", count: metrics.nsMatchSkip };
+  if (id === "ssl") return { label: "SSL", count: metrics.sslErrors + metrics.sslSoon };
+  if (id === "indexok") return { label: "индекс ✓", count: metrics.homesIndexed };
+  if (id === "indexbad") return { label: "не в индексе", count: metrics.homesNotIndexed };
+  if (id === "indexpartial") return { label: "частично", count: metrics.homesPartial };
+  if (id === "indexstale") return { label: "stale", count: metrics.homesStale };
+  if (id === "indexnoindex") return { label: "noindex", count: metrics.homesNoindex };
+  if (id === "indexskip") return { label: "skip", count: metrics.homesSkip };
+  if (id === "indexunknown") return { label: "нет ответа", count: metrics.homesUnknown };
+  return { label: "падения", count: metrics.failed };
+}
+
+function filterOptions(
+  ids: TableFilter[],
+  metrics: Metrics,
+): MenuGroup<TableFilter>["options"] {
+  return ids.map((id) => {
+    const { label, count } = filterCaption(id, metrics);
+    return { id, label, count };
+  });
+}
+
+function filterGroups(metrics: Metrics, showIndex: boolean): MenuGroup<TableFilter>[] {
+  const groups: MenuGroup<TableFilter>[] = [
+    { id: "http", label: "HTTP", options: filterOptions(FILTER_HTTP, metrics) },
+    { id: "ns", label: "NS", options: filterOptions(FILTER_NS, metrics) },
+  ];
+  if (showIndex) {
+    groups.push({
+      id: "index",
+      label: "индекс",
+      options: filterOptions(FILTER_INDEX, metrics),
+    });
+  }
+  return groups;
 }
 
 export function SiteTable({
@@ -100,20 +114,13 @@ export function SiteTable({
   const compact = useMediaQuery(MOBILE_TABLE);
   const wrapRef = useRef<HTMLElement>(null);
   const showIndex = hasIndexColumn(rows);
-  const listKey = `${filter}|${query}|${sortKey}|${sortDir}|${extendedIndex}`;
-  const [paging, setPaging] = useState({ listKey, shown: MOBILE_PAGE });
-  if (paging.listKey !== listKey) {
-    setPaging({ listKey, shown: MOBILE_PAGE });
-  }
-  const shown = paging.listKey === listKey ? paging.shown : MOBILE_PAGE;
 
   const visible = useMemo(
     () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
     [rows, query, filter, sortKey, sortDir],
   );
 
-  const pageRows = compact ? visible.slice(0, shown) : visible;
-  const remaining = compact ? Math.max(0, visible.length - pageRows.length) : 0;
+  const pageRows = extendedIndex ? visible : visible.slice(0, PREVIEW_ROWS);
 
   useEffect(() => {
     if (!jumpToken) return;
@@ -127,17 +134,6 @@ export function SiteTable({
     node.classList.add("is-jump");
   }, [jumpToken]);
 
-  useEffect(() => {
-    if (!extendedIndex) return;
-    setExpanded((prev) => {
-      const next = { ...prev };
-      for (const row of rows) {
-        if (isIndexAutoExpand(row)) next[row.url] = true;
-      }
-      return next;
-    });
-  }, [extendedIndex, rows]);
-
   function toggleSort(key: SortKey) {
     const next = nextSort(sortKey, sortDir, key);
     setSortKey(next.sortKey);
@@ -148,7 +144,12 @@ export function SiteTable({
     setExpanded((prev) => ({ ...prev, [url]: !prev[url] }));
   }
 
-  const colSpan = showIndex ? 8 : 7;
+  const colSpan = showIndex ? 6 : 5;
+  const sortChoices = showIndex
+    ? SORT_OPTIONS
+    : SORT_OPTIONS.filter((option) => option.key !== "index");
+  const sortLabel = sortChoices.find((option) => option.key === sortKey)?.label ?? sortKey;
+  const activeFilter = filterCaption(filter, metrics);
 
   return (
     <section
@@ -168,7 +169,35 @@ export function SiteTable({
           placeholder="Поиск по домену, NS или индексу…"
           aria-label="Поиск по домену, NS или индексу"
         />
-        {showIndex && onExtendedIndexChange ? (
+        <MenuSelect
+          label="фильтр"
+          value={filter}
+          valueLabel={activeFilter.label}
+          valueCount={activeFilter.count}
+          groups={filterGroups(metrics, showIndex)}
+          onChange={onFilterChange}
+        />
+        {compact ? (
+          <MenuSelect
+            label="сортировка"
+            value={sortKey}
+            valueLabel={`${sortLabel}${sortDir === "asc" ? " ↑" : " ↓"}`}
+            groups={[
+              {
+                id: "sort",
+                options: sortChoices.map((option) => ({
+                  id: option.key,
+                  label:
+                    option.key === sortKey
+                      ? `${option.label}${sortDir === "asc" ? " ↑" : " ↓"}`
+                      : option.label,
+                })),
+              },
+            ]}
+            onChange={toggleSort}
+          />
+        ) : null}
+        {onExtendedIndexChange ? (
           <label className="index-toggle">
             <input
               type="checkbox"
@@ -178,41 +207,6 @@ export function SiteTable({
             <span>Расширенный режим</span>
           </label>
         ) : null}
-        <div className="chips" role="tablist">
-          {FILTERS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              className={filter === id ? "on" : undefined}
-              aria-pressed={filter === id}
-              onClick={() => onFilterChange(id)}
-            >
-              {filterCaption(id, metrics)}
-            </button>
-          ))}
-        </div>
-        <div className="sort-mobile">
-          <span className="label">Сортировка</span>
-          <div className="chips">
-            {SORT_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={sortKey === option.key ? "on" : undefined}
-                aria-pressed={sortKey === option.key}
-                onClick={() => toggleSort(option.key)}
-              >
-                {option.label}
-                {sortKey === option.key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
-              </button>
-            ))}
-          </div>
-        </div>
-        <p className="count">
-          {compact && remaining > 0
-            ? `${pageRows.length} из ${visible.length}`
-            : formatRowCount(visible.length)}
-        </p>
       </div>
 
       <div className="table-scroll">
@@ -225,18 +219,6 @@ export function SiteTable({
                 active={sortKey === "host"}
                 dir={sortDir}
                 onClick={() => toggleSort("host")}
-              />
-              <SortTh
-                label="HTTP"
-                active={sortKey === "status"}
-                dir={sortDir}
-                onClick={() => toggleSort("status")}
-              />
-              <SortTh
-                label="зона"
-                active={sortKey === "zone"}
-                dir={sortDir}
-                onClick={() => toggleSort("zone")}
               />
               <th>NS</th>
               {showIndex ? (
@@ -275,21 +257,6 @@ export function SiteTable({
           </tbody>
         </table>
       </div>
-      {remaining > 0 ? (
-        <div className="table-more">
-          <button
-            type="button"
-            onClick={() =>
-              setPaging((prev) => ({
-                listKey,
-                shown: (prev.listKey === listKey ? prev.shown : MOBILE_PAGE) + MOBILE_PAGE,
-              }))
-            }
-          >
-            Загрузить ещё {Math.min(MOBILE_PAGE, remaining)}
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -327,17 +294,6 @@ function sslCellClass(row: SiteRow): string {
   return "mono muted";
 }
 
-function indexCellClass(row: SiteRow): string {
-  const kind = indexKind(row);
-  if (kind === "ok") return "mono ok-text index-cell";
-  if (kind === "partial") return "mono cloak-text index-cell";
-  if (kind === "bad") return "mono down-text index-cell";
-  if (kind === "noindex") return "mono muted index-cell index-noindex";
-  if (kind === "stale" || kind === "unknown") return "mono cloak-text index-cell";
-  if (kind === "skip") return "mono muted index-cell";
-  return "mono muted index-cell";
-}
-
 function SiteRowBlock({
   row,
   showIndex,
@@ -351,21 +307,21 @@ function SiteRowBlock({
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const kind = statusKind(row);
   const nsFail = nsReason(row);
   const match = nsMatchOf(row);
   const indexRowKind = indexKind(row);
-  const tone = nsFail
-    ? "ns-bad"
-    : kind === "down"
-      ? "down"
+  const up = isSiteUp(row);
+  const tone = !up
+    ? "down"
+    : nsFail
+      ? "ns-bad"
       : match === false
         ? "ns-mismatch"
         : indexRowKind === "bad"
           ? "index-bad"
           : indexRowKind === "partial" || indexRowKind === "stale"
             ? "index-warn"
-            : kind;
+            : "";
   const canExpand = showIndex && (row.index != null || isIndexSkip(row));
 
   return (
@@ -387,9 +343,24 @@ function SiteRowBlock({
         aria-expanded={canExpand ? expanded : undefined}
       >
         <td data-label="состояние">
-          <span className={`status ${nsFail ? "down" : kind}`}>
-            <i />
-            {nsFail ? "NS ошибка" : statusKindLabel(kind)}
+          <span className="status-lead">
+            {canExpand ? (
+              <span className={expanded ? "row-expand is-open" : "row-expand"} aria-hidden>
+                <span className="row-expand-label">view</span>
+                <span className="row-expand-hint" />
+              </span>
+            ) : (
+              <span className="row-expand is-placeholder" aria-hidden>
+                <span className="row-expand-label">view</span>
+                <span className="row-expand-hint" />
+              </span>
+            )}
+            <span
+              className={`status-dot ${up ? "ok" : "down"}`}
+              aria-label={up ? "живой" : "падение"}
+            >
+              <i />
+            </span>
           </span>
         </td>
         <td data-label="хост" className="host-cell">
@@ -401,19 +372,10 @@ function SiteRowBlock({
           >
             {hostnameOf(row.url)}
           </a>
-          {canExpand ? (
-            <span className="row-expand-hint">{expanded ? "▾" : "▸"}</span>
-          ) : null}
         </td>
-        <td data-label="HTTP" className="mono">
-          {statusLabel(row)}
-        </td>
-        <td data-label="зона" className="mono">
-          {zoneOf(row.url)}
-        </td>
-        <NsCell row={row} nsFail={nsFail} match={match} />
+        <NsCell row={row} nsFail={nsFail} />
         {showIndex ? (
-          <td data-label="индекс" className={indexCellClass(row)}>
+          <td data-label="индекс" className="mono index-cell">
             <IndexCell row={row} />
           </td>
         ) : null}
@@ -436,65 +398,28 @@ function SiteRowBlock({
 }
 
 function IndexCell({ row }: { row: SiteRow }) {
-  const kind = indexKind(row);
-  const label = indexHomeLabel(row);
-  return (
-    <div className="index-check">
-      {kind === "noindex" ? (
-        <span className="status warn index-badge">
-          <i />
-          noindex
-        </span>
-      ) : null}
-      {kind === "stale" ? (
-        <span className="status warn index-badge">
-          <i />
-          stale
-        </span>
-      ) : null}
-      <span className="index-label">{label}</span>
-    </div>
-  );
+  return <span className="index-label">{indexHomeLabel(row)}</span>;
 }
 
 function NsCell({
   row,
   nsFail,
-  match,
 }: {
   row: SiteRow;
   nsFail: string | null;
-  match: ReturnType<typeof nsMatchOf>;
 }) {
   const live = row.dns?.ns ?? [];
 
   return (
-    <td data-label="NS" className={nsFail ? "mono down-text ns-cell" : "mono muted ns-cell"}>
-      {match === false ? (
-        <div className="ns-check is-bad">
-          <span className="status down ns-badge">
-            <i />
-            не совпало
-          </span>
-          <p className="ns-pair">
-            ожидалось: {formatNsHosts(row.ns_expected)}
-          </p>
-          <p className="ns-pair">
-            сейчас: {formatNsHosts(live, "не резолвится")}
-          </p>
+    <td data-label="NS" className="mono muted ns-cell">
+      {live.length ? (
+        <div className="ns-names">
+          {live.map((name) => (
+            <p key={name}>{name}</p>
+          ))}
         </div>
       ) : (
-        <div className="ns-check">
-          {match === true ? (
-            <span className="status ok ns-badge">
-              <i />
-              ОК
-            </span>
-          ) : null}
-          <span className="ns-live">
-            {nsFail ?? formatNsHosts(live)}
-          </span>
-        </div>
+        <span className="ns-live">{nsFail ?? "—"}</span>
       )}
     </td>
   );

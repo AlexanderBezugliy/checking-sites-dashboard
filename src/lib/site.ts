@@ -89,6 +89,12 @@ export function statusKind(row: SiteRow): StatusKind {
   return "warn";
 }
 
+/** Живой для колонки состояния: 200, 302 и клоака 503. */
+export function isSiteUp(row: SiteRow): boolean {
+  if (!row.alive || row.redirect?.foreign) return false;
+  return row.status === 200 || row.status === 302 || row.status === 503;
+}
+
 export function statusKindLabel(kind: StatusKind): string {
   if (kind === "ok") return "200";
   if (kind === "cloak") return "клоака";

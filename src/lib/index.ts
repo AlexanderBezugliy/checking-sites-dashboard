@@ -107,9 +107,7 @@ export function indexHomeLabel(row: SiteRow): string {
   if (kind === "stale") return "? stale";
   if (kind === "unknown") return "? нет ответа";
   if (kind === "bad") return "✗ главная";
-  const ratio = indexRatioLabel(row);
-  if (kind === "partial") return `~ ${ratio}`;
-  return `✓ ${ratio}`;
+  return indexRatioLabel(row);
 }
 
 export function indexSortScore(row: SiteRow): number | null {
