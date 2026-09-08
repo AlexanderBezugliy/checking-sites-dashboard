@@ -35,3 +35,15 @@ npm run build
 
 Живые данные: `https://raw.githubusercontent.com/AlexanderBezugliy/checking-sites/main/status.json`  
 Запасной снимок: `public/status.json`
+
+## Доступ на Vercel
+
+Прод закрыт HTTP Basic Auth (`middleware.ts`). Локальный `npm run dev` **без** пароля.
+
+В Vercel → Project → Settings → Environment Variables (Production и Preview):
+
+```
+DASHBOARD_USERS=anna:секрет1,ivan:секрет2
+```
+
+Несколько человек — пары через запятую, пароль может содержать `:`. После сохранения — **Redeploy**. Если переменной нет, сайт на Vercel тоже отвечает 401.
