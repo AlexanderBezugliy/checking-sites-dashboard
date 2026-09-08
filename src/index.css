@@ -1501,6 +1501,39 @@ td[data-label="состояние"] {
   overflow-wrap: anywhere;
 }
 
+.subfolder-cell {
+  white-space: nowrap;
+}
+
+.subfolder-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subfolder-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.subfolder-dot i {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.subfolder-dot.ok i {
+  background: var(--ok);
+}
+
+.subfolder-dot.down i {
+  background: var(--down);
+}
+
 .ns-names {
   display: flex;
   flex-direction: column;
@@ -2069,6 +2102,8 @@ tr.down td {
   }
 
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="NS"],
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="подпапка"],
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="склейка"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="индекс"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="SSL"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"] {
@@ -2085,7 +2120,21 @@ tr.down td {
     border-top: 1px solid var(--line);
   }
 
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="подпапка"] {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="подпапка"] + td[data-label="склейка"] + td[data-label="NS"] {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="NS"]::before,
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="подпапка"]::before,
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="склейка"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="индекс"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="SSL"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"]::before {

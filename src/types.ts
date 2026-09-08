@@ -23,6 +23,22 @@ export type RedirectInfo = {
 
 export type NsMatch = true | false | null;
 
+export type SubfolderMatch = true | false | null;
+
+export type SubfolderGlue = "canonical" | "301" | null;
+
+export type SubfolderMode = "home" | "all" | "page" | null;
+
+export type SubfolderInfo = {
+  folder: string | null;
+  csv: string | null;
+  mode: SubfolderMode;
+  match: SubfolderMatch;
+  glue: SubfolderGlue | string | null;
+  live_folder: string | null;
+  error: string | null;
+};
+
 export type SiteRow = {
   url: string;
   status: HttpStatus;
@@ -39,6 +55,11 @@ export type SiteRow = {
   ns_match?: NsMatch;
   /** GSC-проверка. `null` / нет поля — skip. */
   index?: IndexInfo | null;
+  /**
+   * Подпапка из аптайма. Нет ключа / `null` — колонок нет.
+   * Не путать с `redirect` (клоака `?view=`, чужой домен).
+   */
+  subfolder?: SubfolderInfo | null;
 };
 
 export type IndexPage = {

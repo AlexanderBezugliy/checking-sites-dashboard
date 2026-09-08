@@ -20,6 +20,7 @@ import {
   sslDaysLeft,
   zoneOf,
 } from "./site";
+import { subfolderOf } from "./subfolder";
 
 export function matchesFilter(row: SiteRow, filter: TableFilter): boolean {
   if (filter === "200") return row.status === 200;
@@ -58,6 +59,17 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+  const sub = subfolderOf(row);
+  const subfolderText = [
+    sub?.folder,
+    sub?.csv,
+    sub?.glue,
+    sub?.live_folder,
+    sub?.error,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
   return (
     row.url.toLowerCase().includes(needle) ||
     hostnameOf(row.url).toLowerCase().includes(needle) ||
@@ -65,7 +77,8 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     nsProvider(row.dns?.ns).toLowerCase().includes(needle) ||
     ns.includes(needle) ||
     expected.includes(needle) ||
-    indexText.includes(needle)
+    indexText.includes(needle) ||
+    subfolderText.includes(needle)
   );
 }
 

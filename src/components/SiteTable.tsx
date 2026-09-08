@@ -15,6 +15,13 @@ import {
   sslLabel,
   SSL_WARN_DAYS,
 } from "../lib/site";
+import {
+  hasSubfolderColumn,
+  subfolderFolderLabel,
+  subfolderGlueLabel,
+  subfolderHint,
+  subfolderOf,
+} from "../lib/subfolder";
 import { filterAndSortRows, hasIndexColumn, nextSort } from "../lib/table";
 import type { Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
 import { MenuSelect, type MenuGroup } from "./MenuSelect";
@@ -114,6 +121,7 @@ export function SiteTable({
   const compact = useMediaQuery(MOBILE_TABLE);
   const wrapRef = useRef<HTMLElement>(null);
   const showIndex = hasIndexColumn(rows);
+  const showSubfolder = hasSubfolderColumn(rows);
 
   const visible = useMemo(
     () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
@@ -144,7 +152,7 @@ export function SiteTable({
     setExpanded((prev) => ({ ...prev, [url]: !prev[url] }));
   }
 
-  const colSpan = showIndex ? 6 : 5;
+  const colSpan = 5 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0);
   const sortChoices = showIndex
     ? SORT_OPTIONS
     : SORT_OPTIONS.filter((option) => option.key !== "index");
@@ -166,8 +174,16 @@ export function SiteTable({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Поиск по домену, NS или индексу…"
-          aria-label="Поиск по домену, NS или индексу"
+          placeholder={
+            showSubfolder
+              ? "Поиск по домену, NS, индексу или подпапке…"
+              : "Поиск по домену, NS или индексу…"
+          }
+          aria-label={
+            showSubfolder
+              ? "Поиск по домену, NS, индексу или подпапке"
+              : "Поиск по домену, NS или индексу"
+          }
         />
         <MenuSelect
           label="фильтр"
@@ -220,6 +236,12 @@ export function SiteTable({
                 dir={sortDir}
                 onClick={() => toggleSort("host")}
               />
+              {showSubfolder ? (
+                <>
+                  <th>подпапка</th>
+                  <th>склейка</th>
+                </>
+              ) : null}
               <th>NS</th>
               {showIndex ? (
                 <SortTh
@@ -249,6 +271,7 @@ export function SiteTable({
                 key={`${row.url}-${index}`}
                 row={row}
                 showIndex={showIndex}
+                showSubfolder={showSubfolder}
                 colSpan={colSpan}
                 expanded={Boolean(expanded[row.url])}
                 onToggle={() => toggleRow(row.url)}
@@ -297,12 +320,14 @@ function sslCellClass(row: SiteRow): string {
 function SiteRowBlock({
   row,
   showIndex,
+  showSubfolder,
   colSpan,
   expanded,
   onToggle,
 }: {
   row: SiteRow;
   showIndex: boolean;
+  showSubfolder: boolean;
   colSpan: number;
   expanded: boolean;
   onToggle: () => void;
@@ -373,6 +398,7 @@ function SiteRowBlock({
             {hostnameOf(row.url)}
           </a>
         </td>
+        {showSubfolder ? <SubfolderCells row={row} /> : null}
         <NsCell row={row} nsFail={nsFail} />
         {showIndex ? (
           <td data-label="индекс" className="mono index-cell">
@@ -399,6 +425,23 @@ function SiteRowBlock({
 
 function IndexCell({ row }: { row: SiteRow }) {
   return <span className="index-label">{indexHomeLabel(row)}</span>;
+}
+
+function SubfolderCells({ row }: { row: SiteRow }) {
+  const info = subfolderOf(row);
+  const folder = subfolderFolderLabel(info);
+  const hint = subfolderHint(info);
+  const glue = subfolderGlueLabel(info?.glue);
+  return (
+    <>
+      <td data-label="подпапка" className="mono subfolder-cell" title={hint}>
+        {folder}
+      </td>
+      <td data-label="склейка" className="mono muted">
+        {glue}
+      </td>
+    </>
+  );
 }
 
 function NsCell({
