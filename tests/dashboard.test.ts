@@ -163,13 +163,19 @@ describe("metrics from live snapshot", () => {
     expect(metrics.alive).toBe(snapshot.alive_count);
     expect(metrics.failed).toBe(snapshot.failed_count);
     expect(metrics.http200).toBe(
-      snapshot.data.filter((row) => row.status === 200).length,
+      snapshot.data.filter((row) => row.status === 200 && row.cloak?.present !== true)
+        .length,
     );
     expect(metrics.cloak503).toBe(
-      snapshot.data.filter((row) => row.status === 503).length,
+      snapshot.data.filter(
+        (row) =>
+          row.cloak?.present === true ||
+          (row.cloak == null && row.status === 503),
+      ).length,
     );
     expect(metrics.http302).toBe(
-      snapshot.data.filter((row) => row.status === 302).length,
+      snapshot.data.filter((row) => row.status === 302 && row.cloak?.present !== true)
+        .length,
     );
     expect(
       metrics.http200 + metrics.http302 + metrics.cloak503 + metrics.otherHttp,
@@ -232,6 +238,39 @@ describe("metrics from live snapshot", () => {
     expect(
       mix.okShare + mix.redirectShare + mix.cloakShare + mix.otherShare,
     ).toBeCloseTo(1, 10);
+  });
+
+  it("counts cloak from present and does not double-count the uptime 302", () => {
+    const payload: StatusPayload = {
+      last_update: "2026-09-08T00:00:00Z",
+      total_sites: 3,
+      alive_count: 3,
+      failed_count: 0,
+      data: [
+        row({
+          url: "https://winbeastcasino.gb.net",
+          status: 302,
+          cloak: { present: true, status: 503, error: null },
+        }),
+        row({
+          url: "https://open.com",
+          status: 302,
+          cloak: { present: false, status: null, error: null },
+        }),
+        row({
+          url: "https://money.com",
+          status: 200,
+          cloak: { present: false, status: null, error: null },
+        }),
+      ],
+    };
+    const metrics = computeMetrics(payload);
+    expect(metrics.cloak503).toBe(1);
+    expect(metrics.http302).toBe(1);
+    expect(metrics.http200).toBe(1);
+    const mix = httpMixParts(metrics);
+    expect(mix.other).toBe(0);
+    expect(mix.cloakShare).toBeCloseTo(1 / 3, 10);
   });
 
   it("reads SSL day range without counting healthy certs as soon", () => {

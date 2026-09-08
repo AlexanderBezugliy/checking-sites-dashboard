@@ -20,12 +20,13 @@ import {
   sslDaysLeft,
   zoneOf,
 } from "./site";
+import { isCloaked } from "./cloak";
 import { subfolderOf } from "./subfolder";
 
 export function matchesFilter(row: SiteRow, filter: TableFilter): boolean {
-  if (filter === "200") return row.status === 200;
-  if (filter === "302") return row.status === 302;
-  if (filter === "503") return row.status === 503;
+  if (filter === "200") return row.status === 200 && !isCloaked(row);
+  if (filter === "302") return row.status === 302 && !isCloaked(row);
+  if (filter === "503") return isCloaked(row);
   if (filter === "down") return !row.alive;
   if (filter === "ns") return nsReason(row) !== null;
   if (filter === "nsok") return nsMatchOf(row) === true;
@@ -70,6 +71,7 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+  const cloakText = isCloaked(row) ? "503" : "";
   return (
     row.url.toLowerCase().includes(needle) ||
     hostnameOf(row.url).toLowerCase().includes(needle) ||
@@ -78,7 +80,8 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     ns.includes(needle) ||
     expected.includes(needle) ||
     indexText.includes(needle) ||
-    subfolderText.includes(needle)
+    subfolderText.includes(needle) ||
+    cloakText.includes(needle)
   );
 }
 

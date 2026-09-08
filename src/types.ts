@@ -39,6 +39,14 @@ export type SubfolderInfo = {
   error: string | null;
 };
 
+export type CloakPresent = true | false | null;
+
+export type CloakInfo = {
+  present: CloakPresent;
+  status: 503 | null;
+  error: string | null;
+};
+
 export type SiteRow = {
   url: string;
   status: HttpStatus;
@@ -60,6 +68,12 @@ export type SiteRow = {
    * Не путать с `redirect` (клоака `?view=`, чужой домен).
    */
   subfolder?: SubfolderInfo | null;
+  /**
+   * Клоака: запрос без `?view=`.
+   * `present: false` — точно нет (A дал 200). `true` / `null` с `A … not 200/503` — колонка 503.
+   * Не брать из `status` / `redirect`.
+   */
+  cloak?: CloakInfo | null;
 };
 
 export type IndexPage = {
@@ -165,6 +179,7 @@ export type Metrics = {
   failed: number;
   http200: number;
   http302: number;
+  /** Клоака без `?view=`. Не HTTP-статус аптайма. */
   cloak503: number;
   otherHttp: number;
   dnsErrors: number;

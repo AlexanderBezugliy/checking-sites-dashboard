@@ -16,6 +16,13 @@ import {
   SSL_WARN_DAYS,
 } from "../lib/site";
 import {
+  cloakHint,
+  cloakLabel,
+  cloakOf,
+  hasCloakColumn,
+  isCloaked,
+} from "../lib/cloak";
+import {
   hasSubfolderColumn,
   subfolderFolderLabel,
   subfolderGlueLabel,
@@ -122,6 +129,7 @@ export function SiteTable({
   const wrapRef = useRef<HTMLElement>(null);
   const showIndex = hasIndexColumn(rows);
   const showSubfolder = hasSubfolderColumn(rows);
+  const showCloak = hasCloakColumn(rows);
 
   const visible = useMemo(
     () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
@@ -152,7 +160,8 @@ export function SiteTable({
     setExpanded((prev) => ({ ...prev, [url]: !prev[url] }));
   }
 
-  const colSpan = 5 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0);
+  const colSpan =
+    5 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0) + (showCloak ? 1 : 0);
   const sortChoices = showIndex
     ? SORT_OPTIONS
     : SORT_OPTIONS.filter((option) => option.key !== "index");
@@ -236,6 +245,7 @@ export function SiteTable({
                 dir={sortDir}
                 onClick={() => toggleSort("host")}
               />
+              {showCloak ? <th>клоака</th> : null}
               {showSubfolder ? (
                 <>
                   <th>подпапка</th>
@@ -272,6 +282,7 @@ export function SiteTable({
                 row={row}
                 showIndex={showIndex}
                 showSubfolder={showSubfolder}
+                showCloak={showCloak}
                 colSpan={colSpan}
                 expanded={Boolean(expanded[row.url])}
                 onToggle={() => toggleRow(row.url)}
@@ -321,6 +332,7 @@ function SiteRowBlock({
   row,
   showIndex,
   showSubfolder,
+  showCloak,
   colSpan,
   expanded,
   onToggle,
@@ -328,6 +340,7 @@ function SiteRowBlock({
   row: SiteRow;
   showIndex: boolean;
   showSubfolder: boolean;
+  showCloak: boolean;
   colSpan: number;
   expanded: boolean;
   onToggle: () => void;
@@ -398,6 +411,7 @@ function SiteRowBlock({
             {hostnameOf(row.url)}
           </a>
         </td>
+        {showCloak ? <CloakCell row={row} /> : null}
         {showSubfolder ? <SubfolderCells row={row} /> : null}
         <NsCell row={row} nsFail={nsFail} />
         {showIndex ? (
@@ -425,6 +439,21 @@ function SiteRowBlock({
 
 function IndexCell({ row }: { row: SiteRow }) {
   return <span className="index-label">{indexHomeLabel(row)}</span>;
+}
+
+function CloakCell({ row }: { row: SiteRow }) {
+  const info = cloakOf(row);
+  const hint = cloakHint(info);
+  const on = isCloaked(row);
+  return (
+    <td
+      data-label="клоака"
+      className={on ? "mono cloak-text" : "mono muted"}
+      title={hint}
+    >
+      {cloakLabel(info)}
+    </td>
+  );
 }
 
 function SubfolderCells({ row }: { row: SiteRow }) {

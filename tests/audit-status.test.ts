@@ -20,6 +20,7 @@ import {
   isCsvIndexSlot,
   isIndexPartial,
 } from "../src/lib/index";
+import { isCloaked } from "../src/lib/cloak";
 import { filterAndSortRows } from "../src/lib/table";
 import type { StatusPayload } from "../src/types";
 
@@ -32,9 +33,13 @@ const localPayload = JSON.parse(
 
 function recount(payload: StatusPayload) {
   const rows = payload.data ?? [];
-  const http200 = rows.filter((row) => row.status === 200).length;
-  const cloak503 = rows.filter((row) => row.status === 503).length;
-  const http302 = rows.filter((row) => row.status === 302).length;
+  const http200 = rows.filter(
+    (row) => row.status === 200 && !isCloaked(row),
+  ).length;
+  const cloak503 = rows.filter((row) => isCloaked(row)).length;
+  const http302 = rows.filter(
+    (row) => row.status === 302 && !isCloaked(row),
+  ).length;
   const sslDays = rows
     .map((row) => row.ssl?.daysLeft)
     .filter((days): days is number => typeof days === "number");

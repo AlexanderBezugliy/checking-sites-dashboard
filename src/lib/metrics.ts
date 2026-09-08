@@ -20,6 +20,7 @@ import {
   isIndexUnknown,
   isNoindex,
 } from "./index";
+import { isCloaked } from "./cloak";
 import {
   hostnameOf,
   nsMatchOf,
@@ -128,9 +129,9 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   const sslDays: number[] = [];
 
   for (const row of rows) {
-    if (row.status === 200) http200 += 1;
+    if (isCloaked(row)) cloak503 += 1;
+    else if (row.status === 200) http200 += 1;
     else if (row.status === 302) http302 += 1;
-    else if (row.status === 503) cloak503 += 1;
     else if (typeof row.status === "number") otherHttp += 1;
 
     if (row.status === "DNS_ERROR" || row.dns?.ok === false) dnsErrors += 1;
