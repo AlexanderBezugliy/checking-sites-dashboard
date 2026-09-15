@@ -135,7 +135,7 @@ describe("not-indexed export", () => {
     expect(items.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("writes CSV with BOM, header and quoted cells", () => {
+  it("writes Excel-friendly CSV: BOM, sep=;, Russian header, Kyiv time", () => {
     const csv = notIndexedCsv([
       {
         host: "alpha.it.com",
@@ -149,13 +149,16 @@ describe("not-indexed export", () => {
     ]);
     expect(csv.startsWith("\uFEFF")).toBe(true);
     const lines = csv.slice(1).split("\r\n");
-    expect(lines[0]).toBe(NOT_INDEXED_CSV_HEADER.join(","));
-    expect(lines[0]).toBe("host,slot,url,status,coverage,google_canonical,checked_at");
-    expect(lines[1]).toBe(
-      'alpha.it.com,login,https://alpha.it.com/login/,не в индексе,"Duplicate, ""Google"" chose different canonical",https://other.com/login/,2026-09-15T15:06:43.611Z',
+    expect(lines[0]).toBe("sep=;");
+    expect(lines[1]).toBe(NOT_INDEXED_CSV_HEADER.join(";"));
+    expect(lines[1]).toBe("хост;страница;URL;статус;причина Google;каноникал;проверка");
+    expect(lines[2]).toBe(
+      'alpha.it.com;login;https://alpha.it.com/login/;не в индексе;"Duplicate, ""Google"" chose different canonical";https://other.com/login/;15 сент., 18:06',
     );
-    expect(lines[2]).toBe("");
-    expect(notIndexedCsv([]).slice(1)).toBe(`${NOT_INDEXED_CSV_HEADER.join(",")}\r\n`);
+    expect(lines[3]).toBe("");
+    expect(notIndexedCsv([]).slice(1)).toBe(
+      `sep=;\r\n${NOT_INDEXED_CSV_HEADER.join(";")}\r\n`,
+    );
   });
 
   it("names the file by date", () => {

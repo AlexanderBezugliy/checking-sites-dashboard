@@ -1,16 +1,19 @@
+import { formatKyiv } from "./format";
 import { CSV_INDEX_SLOTS, indexReportPages, isIndexSkip } from "./index";
 import { hostnameOf } from "./site";
 import type { IndexPage, SiteRow } from "../types";
 
 export const NOT_INDEXED_CSV_HEADER = [
-  "host",
-  "slot",
-  "url",
-  "status",
-  "coverage",
-  "google_canonical",
-  "checked_at",
+  "хост",
+  "страница",
+  "URL",
+  "статус",
+  "причина Google",
+  "каноникал",
+  "проверка",
 ] as const;
+
+const CSV_SEP = ";";
 
 export type NotIndexedStatus = "noindex" | "stale" | "не в индексе";
 
@@ -74,13 +77,21 @@ export function collectNotIndexedPages(rows: SiteRow[]): NotIndexedPage[] {
 }
 
 function csvCell(value: string): string {
-  if (/[",\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  if (/[";\r\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
   return value;
 }
 
+function csvCheckedAt(iso: string): string {
+  if (!iso) return "";
+  const label = formatKyiv(iso);
+  return label === "—" ? iso : label;
+}
+
+/** CSV для русской Excel: `sep=;`, колонки через `;`, дата по Киеву. */
 export function notIndexedCsv(items: NotIndexedPage[]): string {
   const lines = [
-    NOT_INDEXED_CSV_HEADER.join(","),
+    `sep=${CSV_SEP}`,
+    NOT_INDEXED_CSV_HEADER.join(CSV_SEP),
     ...items.map((item) =>
       [
         item.host,
@@ -89,10 +100,10 @@ export function notIndexedCsv(items: NotIndexedPage[]): string {
         item.status,
         item.coverage,
         item.canonical,
-        item.checkedAt,
+        csvCheckedAt(item.checkedAt),
       ]
         .map(csvCell)
-        .join(","),
+        .join(CSV_SEP),
     ),
     "",
   ];
