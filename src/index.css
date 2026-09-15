@@ -930,6 +930,20 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+/* Подвал блока: чипы noindex/skip/нет ответа слева, «Скачать не в индексе» справа. */
+.index-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 20px;
+}
+
+.index-foot .btn-export-index {
+  margin-left: auto;
+}
+
 .index-quick {
   display: flex;
   flex-wrap: wrap;
@@ -1940,7 +1954,8 @@ tr.down td {
     grid-column: auto;
   }
 
-  .index-issues-head .shiny-cta {
+  .index-issues-head .shiny-cta,
+  .index-foot .shiny-cta {
     width: 100%;
   }
 

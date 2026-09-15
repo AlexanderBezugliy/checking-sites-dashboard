@@ -37,6 +37,7 @@ export default function App() {
           />
           <IndexStrip
             metrics={metrics}
+            rows={payload.data}
             onShowBad={() => showInTable("indexbad")}
             onShowPartial={() => showInTable("indexpartial")}
             onShowStale={() => showInTable("indexstale")}

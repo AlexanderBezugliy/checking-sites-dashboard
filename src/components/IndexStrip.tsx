@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
-import type { Metrics, IndexProblem } from "../types";
+import {
+  collectNotIndexedPages,
+  notIndexedCsv,
+  notIndexedFileName,
+} from "../lib/export";
+import type { IndexProblem, Metrics, SiteRow } from "../types";
 import { NsSummary } from "./NsStrip";
 import { ShinyButton } from "./ShinyButton";
 
 export function IndexStrip({
   metrics,
+  rows,
   onShowBad,
   onShowPartial,
   onShowStale,
@@ -13,6 +19,7 @@ export function IndexStrip({
   onShowUnknown,
 }: {
   metrics: Metrics;
+  rows: SiteRow[];
   onShowBad?: () => void;
   onShowPartial?: () => void;
   onShowStale?: () => void;
@@ -34,6 +41,22 @@ export function IndexStrip({
     : metrics.homesStale || metrics.homesPartial
       ? "warn"
       : "ok";
+  const notIndexed = collectNotIndexedPages(rows);
+
+  function downloadNotIndexed() {
+    if (!notIndexed.length) return;
+    const blob = new Blob([notIndexedCsv(notIndexed)], {
+      type: "text/csv;charset=utf-8",
+    });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = notIndexedFileName();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(href);
+  }
 
   return (
     <section className={`index-strip ${tone} reveal delay-1`}>
@@ -152,27 +175,39 @@ export function IndexStrip({
             </IssueBlock>
           ) : null}
 
-          {metrics.homesNoindex || metrics.homesSkip || metrics.homesUnknown ? (
-            <div className="index-quick">
-              {metrics.homesNoindex ? (
-                <button type="button" onClick={onShowNoindex}>
-                  noindex · {metrics.homesNoindex}
-                </button>
-              ) : null}
-              {metrics.homesSkip ? (
-                <button type="button" onClick={onShowSkip}>
-                  skip · {metrics.homesSkip}
-                </button>
-              ) : null}
-              {metrics.homesUnknown ? (
-                <button type="button" onClick={onShowUnknown}>
-                  нет ответа · {metrics.homesUnknown}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
         </div>
       ) : null}
+
+      <div className="index-foot">
+        {metrics.homesNoindex || metrics.homesSkip || metrics.homesUnknown ? (
+          <div className="index-quick">
+            {metrics.homesNoindex ? (
+              <button type="button" onClick={onShowNoindex}>
+                noindex · {metrics.homesNoindex}
+              </button>
+            ) : null}
+            {metrics.homesSkip ? (
+              <button type="button" onClick={onShowSkip}>
+                skip · {metrics.homesSkip}
+              </button>
+            ) : null}
+            {metrics.homesUnknown ? (
+              <button type="button" onClick={onShowUnknown}>
+                нет ответа · {metrics.homesUnknown}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        <ShinyButton
+          className="btn-export-index"
+          onClick={downloadNotIndexed}
+          disabled={!notIndexed.length}
+        >
+          {notIndexed.length
+            ? `Скачать не в индексе · ${notIndexed.length}`
+            : "Скачать не в индексе"}
+        </ShinyButton>
+      </div>
     </section>
   );
 }
