@@ -179,6 +179,49 @@ export function pageIndexLabel(page: IndexPage): string {
   return page.error ? "? ошибка" : "—";
 }
 
+function urlHost(value: string): string {
+  try {
+    return new URL(value).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function urlPathKey(value: string): string {
+  try {
+    const parsed = new URL(value);
+    let path = parsed.pathname || "/";
+    if (path.length > 1) path = path.replace(/\/+$/, "");
+    if (!path) path = "/";
+    return path;
+  } catch {
+    return "";
+  }
+}
+
+/** Куда Google положил документ, если это не тот же хост+path. */
+export function indexCanonicalHint(page: IndexPage): string | null {
+  const canonical = page.googleCanonical?.trim();
+  if (!canonical || !page.url) return null;
+  if (
+    urlHost(canonical) === urlHost(page.url) &&
+    urlPathKey(canonical) === urlPathKey(page.url)
+  ) {
+    return null;
+  }
+  try {
+    const parsed = new URL(canonical);
+    const host = parsed.hostname.replace(/^www\./i, "");
+    const path =
+      !parsed.pathname || parsed.pathname === "/"
+        ? "/"
+        : parsed.pathname.replace(/\/+$/, "") || "/";
+    return `${host}${path}`;
+  } catch {
+    return canonical;
+  }
+}
+
 export function indexErrorLabel(error: string | null | undefined): string {
   if (!error) return "";
   if (SKIP_ERROR_RE.test(error)) return "нет account";

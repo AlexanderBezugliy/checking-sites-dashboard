@@ -85,6 +85,9 @@ export type IndexPage = {
   verdict?: string | null;
   lastCrawlTime?: string | null;
   pageFetchState?: string | null;
+  /** Каноникал из URL Inspection. Может быть другой хост (PBN). */
+  googleCanonical?: string | null;
+  userCanonical?: string | null;
   checked_at?: string | null;
   error?: string | null;
   /** Google сегодня не ответил, статус сохранён со вчера. */

@@ -1,5 +1,6 @@
 import { formatKyiv } from "../lib/format";
 import {
+  indexCanonicalHint,
   indexErrorLabel,
   indexReportPages,
   isIndexSkip,
@@ -47,6 +48,7 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
               {pages.map((page) => {
                 const kind = pageIndexKind(page);
                 const slot = pageSlotLabel(page);
+                const canonical = indexCanonicalHint(page);
                 return (
                   <tr key={page.url} className={`index-page-${kind}`}>
                     <td className="index-page-url">
@@ -71,7 +73,12 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
                         </span>
                       ) : null}
                     </td>
-                    <td className="mono muted">{page.coverageState || "—"}</td>
+                    <td className="mono muted index-coverage-cell">
+                      <span>{page.coverageState || "—"}</span>
+                      {canonical ? (
+                        <span className="index-canonical">каноникал {canonical}</span>
+                      ) : null}
+                    </td>
                     <td className="mono muted">
                       {page.checked_at ? formatKyiv(page.checked_at) : "—"}
                     </td>

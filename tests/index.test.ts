@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  indexCanonicalHint,
   indexHomeLabel,
   indexKind,
   indexNotIndexedPageLabels,
@@ -213,6 +214,49 @@ describe("index table filters", () => {
     expect(filterAndSortRows(rows, "", "indexnoindex", "host", "asc")).toHaveLength(1);
     expect(filterAndSortRows(rows, "", "indexskip", "host", "asc")).toHaveLength(1);
     expect(filterAndSortRows(rows, "", "indexunknown", "host", "asc")).toHaveLength(1);
+  });
+
+  it("shows a foreign googleCanonical and hides the same-page one", () => {
+    expect(
+      indexCanonicalHint({
+        url: "https://winztercasino.gb.net/",
+        indexed: true,
+        googleCanonical: "https://tynemouth-priory-theatre.com/",
+      }),
+    ).toBe("tynemouth-priory-theatre.com/");
+    expect(
+      indexCanonicalHint({
+        url: "https://bet-ninja-casino.org/how-to-register/",
+        indexed: true,
+        googleCanonical: "https://investorsincarers.com/how-to-register/",
+      }),
+    ).toBe("investorsincarers.com/how-to-register");
+    expect(
+      indexCanonicalHint({
+        url: "https://winztercasino.gb.net/",
+        indexed: true,
+        googleCanonical: "https://www.winztercasino.gb.net/",
+      }),
+    ).toBeNull();
+    const pbnHome = row({
+      url: "https://winztercasino.gb.net",
+      status: 302,
+      index: {
+        indexed: true,
+        coverageState: "Duplicate, Google chose different canonical than user",
+        pages: [
+          {
+            url: "https://winztercasino.gb.net/",
+            slot: "home",
+            indexed: true,
+            googleCanonical: "https://tynemouth-priory-theatre.com/",
+          },
+        ],
+      },
+    });
+    expect(isIndexOk(pbnHome)).toBe(true);
+    expect(isIndexBad(pbnHome)).toBe(false);
+    expect(indexKind(pbnHome)).toBe("ok");
   });
 
   it("does not mix noindex into indexbad", () => {

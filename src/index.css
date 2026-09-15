@@ -1147,6 +1147,19 @@ table.index-pages th {
   font-size: 10px;
 }
 
+.index-coverage-cell {
+  white-space: normal;
+}
+
+.index-canonical {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+  word-break: break-all;
+}
+
 .index-page-badge.ok {
   color: var(--ok);
   background: var(--ok-bg);
