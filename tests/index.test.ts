@@ -81,6 +81,29 @@ describe("index helpers", () => {
     const partial = snapshot.data.find((item) => item.url.includes("new-vegas"))!;
     expect(indexRatioLabel(partial)).toBe("7/8");
     expect(indexHomeLabel(partial)).toBe("7/8");
+    // очередь ещё не дошла до всех слотов CSV — показываем, из скольких
+    const queued = row({
+      url: "https://rollettocasino-official.co.uk",
+      status: 200,
+      index: {
+        indexed: true,
+        pages_total: 9,
+        pages_indexed: 1,
+        pages_checked: 1,
+        pages: [{ url: "https://rollettocasino-official.co.uk/", slot: "home", indexed: true }],
+      },
+    });
+    expect(indexRatioLabel(queued)).toBe("1/1 из 9");
+    expect(indexHomeLabel(queued)).toBe("1/1 из 9");
+    const stale = snapshot.data.find((item) => item.url.includes("justincasino"))!;
+    expect(indexRatioLabel(stale)).toBe("1/1 из 14");
+    expect(indexHomeLabel(stale)).toBe("? stale");
+    const nothing = row({
+      url: "https://nothing.gb.net",
+      status: 200,
+      index: { indexed: null, pages_total: 9, pages_indexed: 0, pages_checked: 0, pages: [] },
+    });
+    expect(indexRatioLabel(nothing)).toBe("—");
     expect(isIndexPartial(partial)).toBe(true);
     expect(isIndexOk(partial)).toBe(true);
     expect(indexNotIndexedPageLabels(partial)).toEqual(["app"]);
@@ -257,6 +280,66 @@ describe("index table filters", () => {
     expect(isIndexOk(pbnHome)).toBe(true);
     expect(isIndexBad(pbnHome)).toBe(false);
     expect(indexKind(pbnHome)).toBe("ok");
+  });
+
+  it("hides the subfolder twin canonical but keeps foreign and other-path ones", () => {
+    const twin = {
+      url: "https://mrluck-casino.org.uk/en-gb/bonuses/",
+      indexed: true,
+      googleCanonical: "https://mrluck-casino.org.uk/bonuses/",
+    };
+    expect(indexCanonicalHint(twin, "en-gb")).toBeNull();
+    expect(indexCanonicalHint(twin)).toBe("mrluck-casino.org.uk/bonuses");
+    expect(indexCanonicalHint(twin, null)).toBe("mrluck-casino.org.uk/bonuses");
+    expect(
+      indexCanonicalHint(
+        {
+          url: "https://freshbet-uk.org/login/",
+          indexed: true,
+          googleCanonical: "https://freshbet-uk.org/en-gb/login/",
+        },
+        "en-gb",
+      ),
+    ).toBeNull();
+    expect(
+      indexCanonicalHint(
+        { url: "https://freshbet-uk.org/", indexed: true, googleCanonical: "https://freshbet-uk.org/en-gb/" },
+        "en-gb",
+      ),
+    ).toBeNull();
+    // склейка в главную — другая страница, подсказку оставляем (адрес как у Google)
+    expect(
+      indexCanonicalHint(
+        {
+          url: "https://freshbet-uk.org/en-gb/login/",
+          indexed: false,
+          googleCanonical: "https://freshbet-uk.org/en-gb/",
+        },
+        "en-gb",
+      ),
+    ).toBe("freshbet-uk.org/en-gb");
+    // другая подпапка — не наша пара
+    expect(
+      indexCanonicalHint(
+        {
+          url: "https://freshbet-uk.org/it/login/",
+          indexed: false,
+          googleCanonical: "https://freshbet-uk.org/login/",
+        },
+        "en-gb",
+      ),
+    ).toBe("freshbet-uk.org/login");
+    // PBN с подпапкой — по-прежнему показываем чужой хост
+    expect(
+      indexCanonicalHint(
+        {
+          url: "https://bet-ninja-casino.org/en-gb/how-to-register/",
+          indexed: true,
+          googleCanonical: "https://investorsincarers.com/en-gb/how-to-register/",
+        },
+        "en-gb",
+      ),
+    ).toBe("investorsincarers.com/en-gb/how-to-register");
   });
 
   it("does not mix noindex into indexbad", () => {

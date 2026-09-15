@@ -8,6 +8,7 @@ import {
   pageIndexLabel,
   pageSlotLabel,
 } from "../lib/index";
+import { subfolderOf } from "../lib/subfolder";
 import type { SiteRow } from "../types";
 
 export function SiteIndexDetail({ row }: { row: SiteRow }) {
@@ -30,6 +31,7 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
   }
 
   const pages = indexReportPages(row);
+  const folder = subfolderOf(row)?.folder ?? null;
 
   return (
     <div className="index-detail">
@@ -48,7 +50,7 @@ export function SiteIndexDetail({ row }: { row: SiteRow }) {
               {pages.map((page) => {
                 const kind = pageIndexKind(page);
                 const slot = pageSlotLabel(page);
-                const canonical = indexCanonicalHint(page);
+                const canonical = indexCanonicalHint(page, folder);
                 return (
                   <tr key={page.url} className={`index-page-${kind}`}>
                     <td className="index-page-url">

@@ -93,10 +93,13 @@ export function isIndexAutoExpand(row: SiteRow): boolean {
   return isIndexBad(row) || isIndexStale(row);
 }
 
+/** `в индексе/проверено`; если очередь дошла не до всех слотов CSV — `1/1 из 9`. */
 export function indexRatioLabel(row: SiteRow): string {
   const checked = row.index?.pages_checked ?? 0;
   const indexed = row.index?.pages_indexed ?? 0;
   if (checked <= 0) return "—";
+  const total = row.index?.pages_total ?? 0;
+  if (total > checked) return `${indexed}/${checked} из ${total}`;
   return `${indexed}/${checked}`;
 }
 
@@ -187,11 +190,18 @@ function urlHost(value: string): string {
   }
 }
 
-function urlPathKey(value: string): string {
+/** Path без хвостового `/`. С `folder` префикс подпапки снимается: `/en-gb/bonuses` → `/bonuses`. */
+function urlPathKey(value: string, folder?: string | null): string {
   try {
     const parsed = new URL(value);
     let path = parsed.pathname || "/";
     if (path.length > 1) path = path.replace(/\/+$/, "");
+    if (folder) {
+      const prefix = `/${folder.toLowerCase()}`;
+      const lower = path.toLowerCase();
+      if (lower === prefix) path = "/";
+      else if (lower.startsWith(`${prefix}/`)) path = path.slice(prefix.length);
+    }
     if (!path) path = "/";
     return path;
   } catch {
@@ -199,13 +209,20 @@ function urlPathKey(value: string): string {
   }
 }
 
-/** Куда Google положил документ, если это не тот же хост+path. */
-export function indexCanonicalHint(page: IndexPage): string | null {
+/**
+ * Куда Google положил документ, если это не тот же хост+path.
+ * `folder` — подпапка сайта из аптайма (`en-gb`): `/en-gb/bonuses/` и `/bonuses/`
+ * у такого сайта одна страница, подсказка не нужна.
+ */
+export function indexCanonicalHint(
+  page: IndexPage,
+  folder?: string | null,
+): string | null {
   const canonical = page.googleCanonical?.trim();
   if (!canonical || !page.url) return null;
   if (
     urlHost(canonical) === urlHost(page.url) &&
-    urlPathKey(canonical) === urlPathKey(page.url)
+    urlPathKey(canonical, folder) === urlPathKey(page.url, folder)
   ) {
     return null;
   }
