@@ -16,6 +16,7 @@ export function IndexStrip({
   onShowStale,
   onShowNoindex,
   onShowSkip,
+  onShowDrop,
   onShowUnknown,
 }: {
   metrics: Metrics;
@@ -25,6 +26,7 @@ export function IndexStrip({
   onShowStale?: () => void;
   onShowNoindex?: () => void;
   onShowSkip?: () => void;
+  onShowDrop?: () => void;
   onShowUnknown?: () => void;
 }) {
   const withData =
@@ -33,7 +35,8 @@ export function IndexStrip({
     metrics.homesUnknown +
     metrics.homesStale +
     metrics.homesNoindex +
-    metrics.homesSkip;
+    metrics.homesSkip +
+    metrics.homesDrop;
   const troubled =
     metrics.homesNotIndexed + metrics.homesStale + metrics.homesPartial;
   const tone = metrics.homesNotIndexed
@@ -108,6 +111,10 @@ export function IndexStrip({
             <span>skip</span>
             <b>{metrics.homesSkip}</b>
           </li>
+          <li className={metrics.homesDrop ? "is-ok" : undefined}>
+            <span>drop</span>
+            <b>{metrics.homesDrop}</b>
+          </li>
           <li>
             <span>нет ответа</span>
             <b>{metrics.homesUnknown}</b>
@@ -179,7 +186,10 @@ export function IndexStrip({
       ) : null}
 
       <div className="index-foot">
-        {metrics.homesNoindex || metrics.homesSkip || metrics.homesUnknown ? (
+        {metrics.homesNoindex ||
+        metrics.homesSkip ||
+        metrics.homesDrop ||
+        metrics.homesUnknown ? (
           <div className="index-quick">
             {metrics.homesNoindex ? (
               <button type="button" onClick={onShowNoindex}>
@@ -189,6 +199,11 @@ export function IndexStrip({
             {metrics.homesSkip ? (
               <button type="button" onClick={onShowSkip}>
                 skip · {metrics.homesSkip}
+              </button>
+            ) : null}
+            {metrics.homesDrop ? (
+              <button type="button" onClick={onShowDrop}>
+                drop · {metrics.homesDrop}
               </button>
             ) : null}
             {metrics.homesUnknown ? (

@@ -43,6 +43,7 @@ export default function App() {
             onShowStale={() => showInTable("indexstale")}
             onShowNoindex={() => showInTable("indexnoindex")}
             onShowSkip={() => showInTable("indexskip")}
+            onShowDrop={() => showInTable("indexdrop")}
             onShowUnknown={() => showInTable("indexunknown")}
           />
           <SiteTable

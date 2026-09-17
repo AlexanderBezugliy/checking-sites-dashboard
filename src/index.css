@@ -1007,6 +1007,11 @@ h2 {
   font-style: italic;
 }
 
+.index-drop {
+  color: var(--ok);
+  font-style: italic;
+}
+
 tr.index-bad {
   background: color-mix(in srgb, var(--down) 10%, #fff);
 }

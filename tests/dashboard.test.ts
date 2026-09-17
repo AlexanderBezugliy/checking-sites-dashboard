@@ -178,7 +178,11 @@ describe("metrics from live snapshot", () => {
         .length,
     );
     expect(
-      metrics.http200 + metrics.http302 + metrics.cloak503 + metrics.otherHttp,
+      metrics.http200 +
+        metrics.http302 +
+        metrics.cloak503 +
+        metrics.otherHttp +
+        metrics.homesDrop,
     ).toBe(snapshot.data.filter((row) => typeof row.status === "number").length);
     expect(metrics.alive + metrics.failed).toBe(metrics.total);
   });

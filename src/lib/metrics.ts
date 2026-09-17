@@ -22,6 +22,11 @@ import {
 } from "./index";
 import { isCloaked } from "./cloak";
 import {
+  fleetHostSet,
+  isFleetDrop,
+  isSiteUpForDashboard,
+} from "./drop";
+import {
   hostnameOf,
   nsMatchOf,
   nsProvider,
@@ -71,7 +76,7 @@ function indexProblemOf(row: SiteRow): IndexProblem | null {
   };
 }
 
-function indexBucket(row: SiteRow): keyof Pick<
+function indexBucket(row: SiteRow, fleetHosts: Set<string>): keyof Pick<
   Metrics,
   | "homesIndexed"
   | "homesNotIndexed"
@@ -79,7 +84,9 @@ function indexBucket(row: SiteRow): keyof Pick<
   | "homesStale"
   | "homesNoindex"
   | "homesSkip"
+  | "homesDrop"
 > | null {
+  if (isFleetDrop(row, fleetHosts)) return "homesDrop";
   if (isIndexSkip(row)) return "homesSkip";
   if (isNoindex(row)) return "homesNoindex";
   if (isIndexStale(row)) return "homesStale";
@@ -123,14 +130,18 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   let homesStale = 0;
   let homesNoindex = 0;
   let homesSkip = 0;
+  let homesDrop = 0;
   let homesPartial = 0;
   let pagesIndexedTotal = 0;
   let pagesCheckedTotal = 0;
   const sslDays: number[] = [];
+  const fleetHosts = fleetHostSet(rows);
 
   for (const row of rows) {
     if (isCloaked(row)) cloak503 += 1;
-    else if (row.status === 200) http200 += 1;
+    else if (isFleetDrop(row, fleetHosts)) {
+      /* 301 дропа — не HTTP-ошибка и не 302 клоаки */
+    } else if (row.status === 200) http200 += 1;
     else if (row.status === 302) http302 += 1;
     else if (typeof row.status === "number") otherHttp += 1;
 
@@ -169,13 +180,14 @@ export function computeMetrics(payload: StatusPayload): Metrics {
       });
     } else nsMatchSkip += 1;
 
-    const bucket = indexBucket(row);
+    const bucket = indexBucket(row, fleetHosts);
     if (bucket === "homesIndexed") homesIndexed += 1;
     else if (bucket === "homesNotIndexed") homesNotIndexed += 1;
     else if (bucket === "homesUnknown") homesUnknown += 1;
     else if (bucket === "homesStale") homesStale += 1;
     else if (bucket === "homesNoindex") homesNoindex += 1;
     else if (bucket === "homesSkip") homesSkip += 1;
+    else if (bucket === "homesDrop") homesDrop += 1;
 
     if (isIndexPartial(row)) homesPartial += 1;
     if (hasIndexData(row)) {
@@ -202,10 +214,12 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     .sort((a, b) => (b.duration || 0) - (a.duration || 0))
     .slice(0, 8);
 
+  const upCount = rows.filter((row) => isSiteUpForDashboard(row, fleetHosts)).length;
+
   return {
     total: payload.total_sites ?? rows.length,
-    alive: payload.alive_count ?? rows.filter((row) => row.alive).length,
-    failed: payload.failed_count ?? rows.filter((row) => !row.alive).length,
+    alive: upCount,
+    failed: rows.length - upCount,
     http200,
     http302,
     cloak503,
@@ -237,6 +251,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     homesStale,
     homesNoindex,
     homesSkip,
+    homesDrop,
     homesPartial,
     pagesIndexedTotal,
     pagesCheckedTotal,
@@ -251,7 +266,11 @@ export function computeMetrics(payload: StatusPayload): Metrics {
 export function httpMixParts(metrics: Metrics) {
   const other = Math.max(
     0,
-    metrics.total - metrics.http200 - metrics.http302 - metrics.cloak503,
+    metrics.total -
+      metrics.http200 -
+      metrics.http302 -
+      metrics.cloak503 -
+      metrics.homesDrop,
   );
   const total = Math.max(
     1,
@@ -276,8 +295,9 @@ export function buildDigest(payload: StatusPayload, metrics: Metrics): string {
   const slowBlock = slow ? `\n\nТоп медленных:\n${slow}` : "";
 
   if (metrics.failed > 0) {
+    const hosts = fleetHostSet(payload.data);
     const downs = payload.data
-      .filter((row) => !row.alive)
+      .filter((row) => !isSiteUpForDashboard(row, hosts))
       .slice(0, 12)
       .map((row) => `   • ${hostnameOf(row.url)} — ${statusLabel(row)}`)
       .join("\n");

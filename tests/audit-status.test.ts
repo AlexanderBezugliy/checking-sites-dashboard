@@ -21,6 +21,7 @@ import {
   isIndexPartial,
 } from "../src/lib/index";
 import { isCloaked } from "../src/lib/cloak";
+import { fleetHostSet, isFleetDrop, isSiteUpForDashboard } from "../src/lib/drop";
 import { filterAndSortRows } from "../src/lib/table";
 import type { StatusPayload } from "../src/types";
 
@@ -33,6 +34,7 @@ const localPayload = JSON.parse(
 
 function recount(payload: StatusPayload) {
   const rows = payload.data ?? [];
+  const fleet = fleetHostSet(rows);
   const http200 = rows.filter(
     (row) => row.status === 200 && !isCloaked(row),
   ).length;
@@ -47,11 +49,13 @@ function recount(payload: StatusPayload) {
   for (const row of rows) {
     urlCounts.set(row.url, (urlCounts.get(row.url) || 0) + 1);
   }
+  const alive = rows.filter((row) => isSiteUpForDashboard(row, fleet)).length;
 
   return {
     rows: rows.length,
-    alive: rows.filter((row) => row.alive).length,
-    failed: rows.filter((row) => !row.alive).length,
+    alive,
+    failed: rows.length - alive,
+    drops: rows.filter((row) => isFleetDrop(row, fleet)).length,
     http200,
     cloak503,
     http302,
@@ -86,10 +90,9 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   expect(Array.isArray(payload.data)).toBe(true);
   expect(payload.data.length).toBe(payload.total_sites);
   expect(metrics.total).toBe(expected.rows);
-  expect(metrics.alive).toBe(payload.alive_count);
   expect(metrics.alive).toBe(expected.alive);
-  expect(metrics.failed).toBe(payload.failed_count);
   expect(metrics.failed).toBe(expected.failed);
+  expect(metrics.homesDrop).toBe(expected.drops);
   expect(metrics.alive + metrics.failed).toBe(metrics.total);
   expect(metrics.http200).toBe(expected.http200);
   expect(metrics.http302).toBe(expected.http302);
@@ -111,7 +114,11 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   expect(metrics.duplicateUrls).toBe(expected.duplicateUrls);
 
   expect(
-    metrics.http200 + metrics.http302 + metrics.cloak503 + mix.other,
+    metrics.http200 +
+      metrics.http302 +
+      metrics.cloak503 +
+      mix.other +
+      metrics.homesDrop,
   ).toBe(metrics.total);
   expect(
     mix.okShare + mix.redirectShare + mix.cloakShare + mix.otherShare,
@@ -131,6 +138,12 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
   );
   expect(filterAndSortRows(payload.data, "", "down", "host", "asc")).toHaveLength(
     expected.failed,
+  );
+  expect(filterAndSortRows(payload.data, "", "indexdrop", "host", "asc")).toHaveLength(
+    expected.drops,
+  );
+  expect(filterAndSortRows(payload.data, "", "indexskip", "host", "asc")).toHaveLength(
+    metrics.homesSkip,
   );
   expect(filterAndSortRows(payload.data, "", "ns", "host", "asc")).toHaveLength(
     expected.nsProblems,
@@ -221,6 +234,12 @@ describe("live GitHub status.json", () => {
     if (noEtalon) {
       expect(nsMatchOf(noEtalon)).toBeNull();
       expect(noEtalon.ns_expected ?? []).toEqual([]);
+    }
+    const drop = byUrl.get("https://airnaturel.co.uk");
+    if (drop) {
+      expect(isFleetDrop(drop, fleetHostSet(payload.data))).toBe(true);
+      expect(isSiteUpForDashboard(drop, fleetHostSet(payload.data))).toBe(true);
+      expect(metrics.homesDrop).toBeGreaterThanOrEqual(1);
     }
 
     const vegas = byUrl.get("https://new-vegas-casino.gb.net");

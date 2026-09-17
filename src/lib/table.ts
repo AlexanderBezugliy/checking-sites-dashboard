@@ -21,13 +21,18 @@ import {
   zoneOf,
 } from "./site";
 import { isCloaked } from "./cloak";
+import { fleetHostSet, isFleetDrop, isSiteUpForDashboard } from "./drop";
 import { subfolderOf } from "./subfolder";
 
-export function matchesFilter(row: SiteRow, filter: TableFilter): boolean {
+export function matchesFilter(
+  row: SiteRow,
+  filter: TableFilter,
+  fleetHosts: Set<string>,
+): boolean {
   if (filter === "200") return row.status === 200 && !isCloaked(row);
   if (filter === "302") return row.status === 302 && !isCloaked(row);
   if (filter === "503") return isCloaked(row);
-  if (filter === "down") return !row.alive;
+  if (filter === "down") return !isSiteUpForDashboard(row, fleetHosts);
   if (filter === "ns") return nsReason(row) !== null;
   if (filter === "nsok") return nsMatchOf(row) === true;
   if (filter === "nsbad") return nsMatchOf(row) === false;
@@ -38,7 +43,8 @@ export function matchesFilter(row: SiteRow, filter: TableFilter): boolean {
   if (filter === "indexpartial") return isIndexPartial(row);
   if (filter === "indexstale") return isIndexStale(row);
   if (filter === "indexnoindex") return isNoindex(row);
-  if (filter === "indexskip") return isIndexSkip(row);
+  if (filter === "indexskip") return isIndexSkip(row) && !isFleetDrop(row, fleetHosts);
+  if (filter === "indexdrop") return isFleetDrop(row, fleetHosts);
   if (filter === "indexunknown") return isIndexUnknown(row);
   return true;
 }
@@ -72,6 +78,7 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     .join(" ")
     .toLowerCase();
   const cloakText = isCloaked(row) ? "503" : "";
+  const dropText = row.redirect?.foreign ? `drop ${row.redirect.location || ""}` : "";
   return (
     row.url.toLowerCase().includes(needle) ||
     hostnameOf(row.url).toLowerCase().includes(needle) ||
@@ -81,7 +88,8 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     expected.includes(needle) ||
     indexText.includes(needle) ||
     subfolderText.includes(needle) ||
-    cloakText.includes(needle)
+    cloakText.includes(needle) ||
+    dropText.toLowerCase().includes(needle)
   );
 }
 
@@ -104,8 +112,9 @@ export function filterAndSortRows(
   sortDir: SortDir,
 ): SiteRow[] {
   const direction = sortDir === "asc" ? 1 : -1;
+  const fleetHosts = fleetHostSet(rows);
   return rows
-    .filter((row) => matchesFilter(row, filter) && matchesQuery(row, query))
+    .filter((row) => matchesFilter(row, filter, fleetHosts) && matchesQuery(row, query))
     .sort((a, b) => {
       if (sortKey === "ssl") {
         const left = sslDaysLeft(a);

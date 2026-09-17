@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatMs } from "../lib/format";
+import { fleetHostSet, isFleetDrop, isSiteUpForDashboard } from "../lib/drop";
 import {
   indexHomeLabel,
   indexKind,
@@ -8,7 +9,6 @@ import {
 } from "../lib/index";
 import {
   hostnameOf,
-  isSiteUp,
   nsMatchOf,
   nsReason,
   sslDaysLeft,
@@ -46,6 +46,7 @@ const FILTER_INDEX: TableFilter[] = [
   "indexstale",
   "indexnoindex",
   "indexskip",
+  "indexdrop",
   "indexunknown",
 ];
 
@@ -75,6 +76,7 @@ function filterCaption(
   if (id === "indexstale") return { label: "stale", count: metrics.homesStale };
   if (id === "indexnoindex") return { label: "noindex", count: metrics.homesNoindex };
   if (id === "indexskip") return { label: "skip", count: metrics.homesSkip };
+  if (id === "indexdrop") return { label: "drop", count: metrics.homesDrop };
   if (id === "indexunknown") return { label: "нет ответа", count: metrics.homesUnknown };
   return { label: "падения", count: metrics.failed };
 }
@@ -130,6 +132,7 @@ export function SiteTable({
   const showIndex = hasIndexColumn(rows);
   const showSubfolder = hasSubfolderColumn(rows);
   const showCloak = hasCloakColumn(rows);
+  const fleetHosts = useMemo(() => fleetHostSet(rows), [rows]);
 
   const visible = useMemo(
     () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
@@ -280,6 +283,7 @@ export function SiteTable({
               <SiteRowBlock
                 key={`${row.url}-${index}`}
                 row={row}
+                fleetHosts={fleetHosts}
                 showIndex={showIndex}
                 showSubfolder={showSubfolder}
                 showCloak={showCloak}
@@ -330,6 +334,7 @@ function sslCellClass(row: SiteRow): string {
 
 function SiteRowBlock({
   row,
+  fleetHosts,
   showIndex,
   showSubfolder,
   showCloak,
@@ -338,6 +343,7 @@ function SiteRowBlock({
   onToggle,
 }: {
   row: SiteRow;
+  fleetHosts: Set<string>;
   showIndex: boolean;
   showSubfolder: boolean;
   showCloak: boolean;
@@ -348,18 +354,21 @@ function SiteRowBlock({
   const nsFail = nsReason(row);
   const match = nsMatchOf(row);
   const indexRowKind = indexKind(row);
-  const up = isSiteUp(row);
-  const tone = !up
-    ? "down"
-    : nsFail
-      ? "ns-bad"
-      : match === false
-        ? "ns-mismatch"
-        : indexRowKind === "bad"
-          ? "index-bad"
-          : indexRowKind === "partial" || indexRowKind === "stale"
-            ? "index-warn"
-            : "";
+  const drop = isFleetDrop(row, fleetHosts);
+  const up = isSiteUpForDashboard(row, fleetHosts);
+  const tone = drop
+    ? ""
+    : !up
+      ? "down"
+      : nsFail
+        ? "ns-bad"
+        : match === false
+          ? "ns-mismatch"
+          : indexRowKind === "bad"
+            ? "index-bad"
+            : indexRowKind === "partial" || indexRowKind === "stale"
+              ? "index-warn"
+              : "";
   const canExpand = showIndex && (row.index != null || isIndexSkip(row));
 
   return (
@@ -416,7 +425,7 @@ function SiteRowBlock({
         <NsCell row={row} nsFail={nsFail} />
         {showIndex ? (
           <td data-label="индекс" className="mono index-cell">
-            <IndexCell row={row} />
+            <IndexCell row={row} isDrop={drop} />
           </td>
         ) : null}
         <td data-label="SSL" className={sslCellClass(row)}>
@@ -429,7 +438,7 @@ function SiteRowBlock({
       {expanded && canExpand ? (
         <tr className="index-detail-row">
           <td colSpan={colSpan}>
-            <SiteIndexDetail row={row} />
+            <SiteIndexDetail row={row} isDrop={drop} />
           </td>
         </tr>
       ) : null}
@@ -437,7 +446,8 @@ function SiteRowBlock({
   );
 }
 
-function IndexCell({ row }: { row: SiteRow }) {
+function IndexCell({ row, isDrop }: { row: SiteRow; isDrop: boolean }) {
+  if (isDrop) return <span className="index-label index-drop">drop</span>;
   return <span className="index-label">{indexHomeLabel(row)}</span>;
 }
 

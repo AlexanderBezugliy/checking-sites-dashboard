@@ -190,6 +190,7 @@ describe("index metrics from fixture", () => {
     expect(metrics.homesNotIndexed).toBe(1);
     expect(metrics.homesNoindex).toBe(1);
     expect(metrics.homesSkip).toBe(1);
+    expect(metrics.homesDrop).toBe(0);
     expect(metrics.homesStale).toBe(1);
     expect(metrics.homesUnknown).toBe(1);
     expect(metrics.homesPartial).toBe(1);
@@ -199,7 +200,8 @@ describe("index metrics from fixture", () => {
         metrics.homesUnknown +
         metrics.homesStale +
         metrics.homesNoindex +
-        metrics.homesSkip,
+        metrics.homesSkip +
+        metrics.homesDrop,
     ).toBe(snapshot.total_sites);
   });
 
@@ -236,6 +238,7 @@ describe("index table filters", () => {
     expect(filterAndSortRows(rows, "", "indexstale", "host", "asc")).toHaveLength(1);
     expect(filterAndSortRows(rows, "", "indexnoindex", "host", "asc")).toHaveLength(1);
     expect(filterAndSortRows(rows, "", "indexskip", "host", "asc")).toHaveLength(1);
+    expect(filterAndSortRows(rows, "", "indexdrop", "host", "asc")).toHaveLength(0);
     expect(filterAndSortRows(rows, "", "indexunknown", "host", "asc")).toHaveLength(1);
   });
 

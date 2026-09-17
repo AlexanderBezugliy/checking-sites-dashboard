@@ -1,4 +1,5 @@
 import { formatKyiv } from "../lib/format";
+import { dropTargetLabel } from "../lib/drop";
 import {
   indexCanonicalHint,
   indexErrorLabel,
@@ -11,8 +12,24 @@ import {
 import { subfolderOf } from "../lib/subfolder";
 import type { SiteRow } from "../types";
 
-export function SiteIndexDetail({ row }: { row: SiteRow }) {
+export function SiteIndexDetail({
+  row,
+  isDrop = false,
+}: {
+  row: SiteRow;
+  isDrop?: boolean;
+}) {
   const info = row.index;
+  if (isDrop) {
+    const target = dropTargetLabel(row);
+    return (
+      <div className="index-detail">
+        <p className="index-detail-skip">
+          дроп · 301 на {target || "money-сайт"} — индекс смотрим там, не здесь
+        </p>
+      </div>
+    );
+  }
   if (isIndexSkip(row)) {
     return (
       <div className="index-detail">

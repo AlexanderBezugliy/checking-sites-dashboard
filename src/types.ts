@@ -212,6 +212,8 @@ export type Metrics = {
   homesStale: number;
   homesNoindex: number;
   homesSkip: number;
+  /** Skip + 301 на money-сайт из этого же status.json. Не падение. */
+  homesDrop: number;
   homesPartial: number;
   pagesIndexedTotal: number;
   pagesCheckedTotal: number;
@@ -239,6 +241,7 @@ export type TableFilter =
   | "indexstale"
   | "indexnoindex"
   | "indexskip"
+  | "indexdrop"
   | "indexunknown";
 export type SortKey = "host" | "status" | "duration" | "zone" | "ssl" | "index";
 export type SortDir = "asc" | "desc";
