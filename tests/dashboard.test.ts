@@ -9,6 +9,7 @@ import {
   nsProvider,
   nsReason,
   statusKind,
+  statusLabel,
   isSiteUp,
   zoneOf,
 } from "../src/lib/site";
@@ -66,6 +67,23 @@ describe("site helpers", () => {
     expect(statusKind(row({ url: "https://a.com", status: "DNS_ERROR", alive: false }))).toBe(
       "down",
     );
+  });
+
+  it("prints the HTTP code or DNS/SSL label", () => {
+    expect(statusLabel(row({ url: "https://a.com", status: 403, alive: false }))).toBe(
+      "403",
+    );
+    expect(statusLabel(row({ url: "https://b.com", status: 200 }))).toBe("200");
+    expect(
+      statusLabel(
+        row({
+          url: "https://c.com",
+          status: "DNS_ERROR",
+          alive: false,
+          error: "NS не найдены",
+        }),
+      ),
+    ).toBe("NS не найдены");
   });
 
   it("treats 200, 302 and cloak 503 as up", () => {
@@ -316,6 +334,7 @@ describe("table filter / sort", () => {
       redirect: { status: 302, location: "/", foreign: false },
     }),
     row({ url: "https://down.com", status: "DNS_ERROR", alive: false, duration: 20 }),
+    row({ url: "https://blocked.it.com", status: 403, alive: false, duration: 50 }),
   ];
 
   it("filters by cloak and query", () => {
@@ -324,16 +343,36 @@ describe("table filter / sort", () => {
     expect(filterAndSortRows(rows, "gb.net", "all", "host", "asc")[0].url).toContain(
       "alpha",
     );
-    expect(filterAndSortRows(rows, "", "down", "host", "asc")[0].url).toContain("down");
+    expect(filterAndSortRows(rows, "", "down", "host", "asc").map((item) => item.url)).toEqual(
+      ["https://blocked.it.com", "https://down.com"],
+    );
+    expect(filterAndSortRows(rows, "403", "all", "host", "asc")[0].url).toContain(
+      "blocked",
+    );
     expect(filterAndSortRows(rows, "", "ns", "host", "asc")).toHaveLength(1);
   });
 
   it("sorts duration desc by default toggle", () => {
     const sorted = filterAndSortRows(rows, "", "all", "duration", "desc");
-    expect(sorted.map((item) => item.duration)).toEqual([400, 100, 80, 20]);
+    expect(sorted.map((item) => item.duration)).toEqual([400, 100, 80, 50, 20]);
     expect(nextSort("duration", "desc", "duration")).toEqual({
       sortKey: "duration",
       sortDir: "asc",
+    });
+  });
+
+  it("sorts by HTTP status", () => {
+    const sorted = filterAndSortRows(rows, "", "all", "status", "asc");
+    expect(sorted.map((item) => item.status)).toEqual([
+      200,
+      302,
+      403,
+      503,
+      "DNS_ERROR",
+    ]);
+    expect(nextSort("duration", "desc", "status")).toEqual({
+      sortKey: "status",
+      sortDir: "desc",
     });
   });
 

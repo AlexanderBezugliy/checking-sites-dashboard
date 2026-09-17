@@ -960,26 +960,8 @@ h2 {
   font-size: 12px;
 }
 
-.index-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  position: relative;
-  z-index: 4;
-  color: var(--muted);
-  font-size: 12px;
-  user-select: none;
-  cursor: pointer;
-}
-
-.index-toggle input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  flex: none;
-  accent-color: var(--ok);
-  cursor: pointer;
+.http-cell {
+  white-space: nowrap;
 }
 
 .index-cell {
@@ -1078,6 +1060,21 @@ tr.is-expanded td {
 
 .index-detail {
   padding: 12px 4px 4px;
+}
+
+.index-detail-drop,
+.index-detail-home {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.index-detail-drop {
+  color: var(--ok);
+  font-style: italic;
+}
+
+.index-detail-home {
+  color: var(--text);
 }
 
 .index-detail-meta {
@@ -1509,6 +1506,10 @@ td[data-label="состояние"] {
   text-align: center;
 }
 
+td[data-label="HTTP"] {
+  width: 72px;
+}
+
 .sort {
   background: none;
   border: 0;
@@ -1927,10 +1928,6 @@ tr.down td {
     max-width: none;
     flex: none;
   }
-
-  .index-toggle {
-    grid-column: 1 / -1;
-  }
 }
 
 /* Phone */
@@ -2135,6 +2132,7 @@ tr.down td {
   }
 
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="NS"],
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="HTTP"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="клоака"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="подпапка"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="склейка"],
@@ -2166,12 +2164,21 @@ tr.down td {
     border-top: 0;
   }
 
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="HTTP"] {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="клоака"] {
     margin-top: 4px;
     padding-top: 10px;
     border-top: 1px solid var(--line);
   }
 
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="HTTP"] + td[data-label="клоака"],
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="HTTP"] + td[data-label="подпапка"],
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="HTTP"] + td[data-label="NS"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="клоака"] + td[data-label="подпапка"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="клоака"] + td[data-label="NS"] {
     margin-top: 0;
@@ -2180,6 +2187,7 @@ tr.down td {
   }
 
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="NS"]::before,
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="HTTP"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="клоака"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="подпапка"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="склейка"]::before,

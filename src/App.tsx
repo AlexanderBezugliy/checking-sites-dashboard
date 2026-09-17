@@ -11,7 +11,6 @@ export default function App() {
   const { payload, metrics, error, loading, refresh } = useFleetStatus();
   const [filter, setFilter] = useState<TableFilter>("all");
   const [tableJump, setTableJump] = useState(0);
-  const [extendedIndex, setExtendedIndex] = useState(false);
 
   function showInTable(next: TableFilter) {
     setFilter(next);
@@ -51,8 +50,6 @@ export default function App() {
             metrics={metrics}
             filter={filter}
             jumpToken={tableJump}
-            extendedIndex={extendedIndex}
-            onExtendedIndexChange={setExtendedIndex}
             onFilterChange={setFilter}
           />
         </>

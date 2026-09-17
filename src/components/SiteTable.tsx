@@ -14,6 +14,7 @@ import {
   sslDaysLeft,
   sslLabel,
   SSL_WARN_DAYS,
+  statusLabel,
 } from "../lib/site";
 import {
   cloakHint,
@@ -34,7 +35,6 @@ import type { Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
 import { MenuSelect, type MenuGroup } from "./MenuSelect";
 import { SiteIndexDetail } from "./SiteIndexDetail";
 
-const PREVIEW_ROWS = 10;
 const MOBILE_TABLE = "(max-width: 720px)";
 
 const FILTER_HTTP: TableFilter[] = ["all", "200", "302", "503", "down", "ssl"];
@@ -52,6 +52,7 @@ const FILTER_INDEX: TableFilter[] = [
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "host", label: "хост" },
+  { key: "status", label: "HTTP" },
   { key: "ssl", label: "SSL" },
   { key: "index", label: "индекс" },
   { key: "duration", label: "время" },
@@ -111,16 +112,12 @@ export function SiteTable({
   metrics,
   filter,
   jumpToken = 0,
-  extendedIndex = false,
-  onExtendedIndexChange,
   onFilterChange,
 }: {
   rows: SiteRow[];
   metrics: Metrics;
   filter: TableFilter;
   jumpToken?: number;
-  extendedIndex?: boolean;
-  onExtendedIndexChange?: (value: boolean) => void;
   onFilterChange: (filter: TableFilter) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -138,8 +135,6 @@ export function SiteTable({
     () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
     [rows, query, filter, sortKey, sortDir],
   );
-
-  const pageRows = extendedIndex ? visible : visible.slice(0, PREVIEW_ROWS);
 
   useEffect(() => {
     if (!jumpToken) return;
@@ -164,7 +159,7 @@ export function SiteTable({
   }
 
   const colSpan =
-    5 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0) + (showCloak ? 1 : 0);
+    6 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0) + (showCloak ? 1 : 0);
   const sortChoices = showIndex
     ? SORT_OPTIONS
     : SORT_OPTIONS.filter((option) => option.key !== "index");
@@ -225,16 +220,6 @@ export function SiteTable({
             onChange={toggleSort}
           />
         ) : null}
-        {onExtendedIndexChange ? (
-          <label className="index-toggle">
-            <input
-              type="checkbox"
-              checked={extendedIndex}
-              onChange={(event) => onExtendedIndexChange(event.target.checked)}
-            />
-            <span>Расширенный режим</span>
-          </label>
-        ) : null}
       </div>
 
       <div className="table-scroll">
@@ -247,6 +232,12 @@ export function SiteTable({
                 active={sortKey === "host"}
                 dir={sortDir}
                 onClick={() => toggleSort("host")}
+              />
+              <SortTh
+                label="HTTP"
+                active={sortKey === "status"}
+                dir={sortDir}
+                onClick={() => toggleSort("status")}
               />
               {showCloak ? <th>клоака</th> : null}
               {showSubfolder ? (
@@ -279,7 +270,7 @@ export function SiteTable({
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((row, index) => (
+            {visible.map((row, index) => (
               <SiteRowBlock
                 key={`${row.url}-${index}`}
                 row={row}
@@ -322,6 +313,14 @@ function SortTh({
       </button>
     </th>
   );
+}
+
+function httpCellClass(row: SiteRow): string {
+  const code = row.status;
+  if (code === 200 || code === 301) return "mono muted http-cell";
+  if (code === 302) return "mono http-cell";
+  if (code === 503) return "mono cloak-text http-cell";
+  return "mono down-text http-cell";
 }
 
 function sslCellClass(row: SiteRow): string {
@@ -419,6 +418,9 @@ function SiteRowBlock({
           >
             {hostnameOf(row.url)}
           </a>
+        </td>
+        <td data-label="HTTP" className={httpCellClass(row)}>
+          {statusLabel(row)}
         </td>
         {showCloak ? <CloakCell row={row} /> : null}
         {showSubfolder ? <SubfolderCells row={row} /> : null}

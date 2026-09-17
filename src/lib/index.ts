@@ -113,6 +113,18 @@ export function indexHomeLabel(row: SiteRow): string {
   return indexRatioLabel(row);
 }
 
+/** Главная в раскрытии: в индексе / нет / нет GSC. */
+export function indexHomeStatusLabel(row: SiteRow): string {
+  const info = row.index;
+  if (!info) return "нет данных";
+  if (info.indexed === true) return "в индексе";
+  if (isNoindex(row)) return "noindex";
+  if (info.indexed === false) return info.coverageState || "не в индексе";
+  if (isIndexSkip(row)) return indexErrorLabel(info.error) || "нет GSC";
+  if (info.error) return indexErrorLabel(info.error) || "нет ответа";
+  return "нет ответа";
+}
+
 export function indexSortScore(row: SiteRow): number | null {
   if (isIndexSkip(row) || !row.index) return null;
   const checked = row.index.pages_checked ?? 0;

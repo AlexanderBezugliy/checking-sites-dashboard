@@ -18,6 +18,7 @@ import {
   nsProvider,
   nsReason,
   sslDaysLeft,
+  statusLabel,
   zoneOf,
 } from "./site";
 import { isCloaked } from "./cloak";
@@ -79,6 +80,7 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     .toLowerCase();
   const cloakText = isCloaked(row) ? "503" : "";
   const dropText = row.redirect?.foreign ? `drop ${row.redirect.location || ""}` : "";
+  const httpText = statusLabel(row).toLowerCase();
   return (
     row.url.toLowerCase().includes(needle) ||
     hostnameOf(row.url).toLowerCase().includes(needle) ||
@@ -89,7 +91,8 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     indexText.includes(needle) ||
     subfolderText.includes(needle) ||
     cloakText.includes(needle) ||
-    dropText.toLowerCase().includes(needle)
+    dropText.toLowerCase().includes(needle) ||
+    httpText.includes(needle)
   );
 }
 

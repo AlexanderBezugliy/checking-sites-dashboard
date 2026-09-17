@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   indexCanonicalHint,
   indexHomeLabel,
+  indexHomeStatusLabel,
   indexKind,
   indexNotIndexedPageLabels,
   indexPartialDetail,
@@ -118,6 +119,40 @@ describe("index helpers", () => {
       "bonus",
       "deposit",
     ]);
+  });
+
+  it("says whether the home URL is indexed", () => {
+    expect(
+      indexHomeStatusLabel(
+        row({
+          url: "https://ok.example",
+          status: 200,
+          index: { indexed: true, pages: [] },
+        }),
+      ),
+    ).toBe("в индексе");
+    expect(
+      indexHomeStatusLabel(
+        row({
+          url: "https://out.example",
+          status: 200,
+          index: {
+            indexed: false,
+            coverageState: "Crawled - currently not indexed",
+            pages: [],
+          },
+        }),
+      ),
+    ).toBe("Crawled - currently not indexed");
+    expect(
+      indexHomeStatusLabel(
+        row({
+          url: "https://drop.example",
+          status: 301,
+          index: { indexed: null, error: "нет в sites.csv / нет account", pages: [] },
+        }),
+      ),
+    ).toBe("нет account");
   });
 
   it("hides sitemap leftover slots and does not remap bonuses from the URL", () => {
