@@ -10,6 +10,8 @@ import {
   nsReason,
   statusKind,
   statusLabel,
+  httpColumnLabel,
+  isOwnHomeRedirect,
   isSiteUp,
   zoneOf,
 } from "../src/lib/site";
@@ -84,6 +86,41 @@ describe("site helpers", () => {
         }),
       ),
     ).toBe("NS не найдены");
+  });
+
+  it("shows own-host 302 to / as 200 in the HTTP column", () => {
+    const gate = row({
+      url: "https://spinmama2.it.com",
+      status: 302,
+      redirect: { status: 302, location: "/", foreign: false },
+    });
+    const elsewhere = row({
+      url: "https://money.com",
+      status: 302,
+      redirect: { status: 302, location: "/en-gb/", foreign: false },
+    });
+    const hijack = row({
+      url: "https://money.com",
+      status: 302,
+      alive: false,
+      redirect: { status: 302, location: "https://evil.com", foreign: true },
+    });
+    const drop = row({
+      url: "https://drop.com",
+      status: 301,
+      redirect: { status: 301, location: "https://money.com", foreign: true },
+    });
+    expect(isOwnHomeRedirect(gate)).toBe(true);
+    expect(httpColumnLabel(gate)).toBe("200");
+    expect(statusLabel(gate)).toBe("302");
+    expect(isOwnHomeRedirect(elsewhere)).toBe(false);
+    expect(httpColumnLabel(elsewhere)).toBe("302");
+    expect(isOwnHomeRedirect(hijack)).toBe(false);
+    expect(httpColumnLabel(hijack)).toBe("302");
+    expect(isOwnHomeRedirect(drop)).toBe(false);
+    expect(httpColumnLabel(drop)).toBe("301");
+    expect(isSiteUp(gate)).toBe(true);
+    expect(isSiteUp(hijack)).toBe(false);
   });
 
   it("treats 200, 302 and cloak 503 as up", () => {
@@ -181,8 +218,11 @@ describe("metrics from live snapshot", () => {
     expect(metrics.alive).toBe(snapshot.alive_count);
     expect(metrics.failed).toBe(snapshot.failed_count);
     expect(metrics.http200).toBe(
-      snapshot.data.filter((row) => row.status === 200 && row.cloak?.present !== true)
-        .length,
+      snapshot.data.filter(
+        (row) =>
+          (row.status === 200 || isOwnHomeRedirect(row)) &&
+          row.cloak?.present !== true,
+      ).length,
     );
     expect(metrics.cloak503).toBe(
       snapshot.data.filter(
@@ -192,8 +232,12 @@ describe("metrics from live snapshot", () => {
       ).length,
     );
     expect(metrics.http302).toBe(
-      snapshot.data.filter((row) => row.status === 302 && row.cloak?.present !== true)
-        .length,
+      snapshot.data.filter(
+        (row) =>
+          row.status === 302 &&
+          !isOwnHomeRedirect(row) &&
+          row.cloak?.present !== true,
+      ).length,
     );
     expect(
       metrics.http200 +
@@ -256,7 +300,8 @@ describe("metrics from live snapshot", () => {
     };
     const mix = httpMixParts(computeMetrics(payload));
     expect(mix.other).toBe(1);
-    expect(computeMetrics(payload).http302).toBe(1);
+    expect(computeMetrics(payload).http200).toBe(2);
+    expect(computeMetrics(payload).http302).toBe(0);
     expect(
       mix.okShare + mix.redirectShare + mix.cloakShare + mix.otherShare,
     ).toBeCloseTo(1, 10);
@@ -333,13 +378,23 @@ describe("table filter / sort", () => {
       duration: 80,
       redirect: { status: 302, location: "/", foreign: false },
     }),
+    row({
+      url: "https://locale.com",
+      status: 302,
+      alive: true,
+      duration: 90,
+      redirect: { status: 302, location: "/en-gb/", foreign: false },
+    }),
     row({ url: "https://down.com", status: "DNS_ERROR", alive: false, duration: 20 }),
     row({ url: "https://blocked.it.com", status: 403, alive: false, duration: 50 }),
   ];
 
   it("filters by cloak and query", () => {
     expect(filterAndSortRows(rows, "", "503", "host", "asc")).toHaveLength(1);
-    expect(filterAndSortRows(rows, "", "302", "host", "asc")[0].url).toContain("jump");
+    expect(filterAndSortRows(rows, "", "302", "host", "asc")[0].url).toContain("locale");
+    expect(filterAndSortRows(rows, "", "200", "host", "asc").map((item) => item.url)).toEqual(
+      ["https://alpha.gb.net", "https://jump.gb.net"],
+    );
     expect(filterAndSortRows(rows, "gb.net", "all", "host", "asc")[0].url).toContain(
       "alpha",
     );
@@ -354,7 +409,7 @@ describe("table filter / sort", () => {
 
   it("sorts duration desc by default toggle", () => {
     const sorted = filterAndSortRows(rows, "", "all", "duration", "desc");
-    expect(sorted.map((item) => item.duration)).toEqual([400, 100, 80, 50, 20]);
+    expect(sorted.map((item) => item.duration)).toEqual([400, 100, 90, 80, 50, 20]);
     expect(nextSort("duration", "desc", "duration")).toEqual({
       sortKey: "duration",
       sortDir: "asc",
@@ -363,12 +418,13 @@ describe("table filter / sort", () => {
 
   it("sorts by HTTP status", () => {
     const sorted = filterAndSortRows(rows, "", "all", "status", "asc");
-    expect(sorted.map((item) => item.status)).toEqual([
-      200,
-      302,
-      403,
-      503,
-      "DNS_ERROR",
+    expect(sorted.map((item) => httpColumnLabel(item))).toEqual([
+      "200",
+      "200",
+      "302",
+      "403",
+      "503",
+      "DNS",
     ]);
     expect(nextSort("duration", "desc", "status")).toEqual({
       sortKey: "status",

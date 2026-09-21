@@ -13,12 +13,13 @@ import {
 } from "./index";
 import {
   hostnameOf,
+  httpColumnLabel,
+  isOwnHomeRedirect,
   isSslSoon,
   nsMatchOf,
   nsProvider,
   nsReason,
   sslDaysLeft,
-  statusLabel,
   zoneOf,
 } from "./site";
 import { isCloaked } from "./cloak";
@@ -30,8 +31,12 @@ export function matchesFilter(
   filter: TableFilter,
   fleetHosts: Set<string>,
 ): boolean {
-  if (filter === "200") return row.status === 200 && !isCloaked(row);
-  if (filter === "302") return row.status === 302 && !isCloaked(row);
+  if (filter === "200") {
+    return (row.status === 200 || isOwnHomeRedirect(row)) && !isCloaked(row);
+  }
+  if (filter === "302") {
+    return row.status === 302 && !isCloaked(row) && !isOwnHomeRedirect(row);
+  }
   if (filter === "503") return isCloaked(row);
   if (filter === "down") return !isSiteUpForDashboard(row, fleetHosts);
   if (filter === "ns") return nsReason(row) !== null;
@@ -80,7 +85,7 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
     .toLowerCase();
   const cloakText = isCloaked(row) ? "503" : "";
   const dropText = row.redirect?.foreign ? `drop ${row.redirect.location || ""}` : "";
-  const httpText = statusLabel(row).toLowerCase();
+  const httpText = httpColumnLabel(row).toLowerCase();
   return (
     row.url.toLowerCase().includes(needle) ||
     hostnameOf(row.url).toLowerCase().includes(needle) ||
@@ -99,7 +104,9 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
 function compareRows(a: SiteRow, b: SiteRow, sortKey: SortKey): number {
   if (sortKey === "duration") return (a.duration || 0) - (b.duration || 0);
   if (sortKey === "status") {
-    return String(a.status).localeCompare(String(b.status), "ru");
+    const byCode = httpColumnLabel(a).localeCompare(httpColumnLabel(b), "ru");
+    if (byCode !== 0) return byCode;
+    return hostnameOf(a.url).localeCompare(hostnameOf(b.url), "ru");
   }
   if (sortKey === "zone") {
     return zoneOf(a.url).localeCompare(zoneOf(b.url), "ru");

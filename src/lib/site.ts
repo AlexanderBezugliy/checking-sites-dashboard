@@ -10,6 +10,33 @@ export function hostnameOf(url: string): string {
   }
 }
 
+function pathKey(pathname: string): string {
+  let path = pathname || "/";
+  if (!path.startsWith("/")) path = `/${path}`;
+  if (path.length > 1) path = path.replace(/\/+$/, "");
+  return path.toLowerCase() || "/";
+}
+
+/**
+ * 302 gate на свой же путь (обычно `/` после `?view=`), не чужой домен и не 301.
+ * В колонке HTTP это показываем как 200 — страница после обхода открывается.
+ */
+export function isOwnHomeRedirect(row: SiteRow): boolean {
+  if (row.status !== 302) return false;
+  const redirect = row.redirect;
+  if (!redirect || redirect.foreign) return false;
+  if (redirect.status != null && redirect.status !== 302) return false;
+  if (!redirect.location) return false;
+  try {
+    const from = new URL(row.url);
+    const dest = new URL(redirect.location, from);
+    if (hostnameOf(from.href) !== hostnameOf(dest.href)) return false;
+    return pathKey(dest.pathname) === pathKey(from.pathname);
+  } catch {
+    return false;
+  }
+}
+
 /** Публичный суффикс: `gb.net`, `org.uk`, иначе последняя метка (`it`, `com`). */
 export function zoneOf(url: string): string {
   const host = hostnameOf(url);
@@ -78,6 +105,12 @@ export function statusLabel(row: SiteRow): string {
   if (row.status === "SSL_ERROR") return "SSL";
   if (row.status === "ERROR") return row.error || "ошибка";
   return String(row.status);
+}
+
+/** Цифра в колонке HTTP: свой 302 на `/` как 200. Сырой `status` не меняем. */
+export function httpColumnLabel(row: SiteRow): string {
+  if (isOwnHomeRedirect(row)) return "200";
+  return statusLabel(row);
 }
 
 export function statusKind(row: SiteRow): StatusKind {

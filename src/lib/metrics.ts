@@ -28,6 +28,7 @@ import {
 } from "./drop";
 import {
   hostnameOf,
+  isOwnHomeRedirect,
   nsMatchOf,
   nsProvider,
   nsReason,
@@ -141,7 +142,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     if (isCloaked(row)) cloak503 += 1;
     else if (isFleetDrop(row, fleetHosts)) {
       /* 301 дропа — не HTTP-ошибка и не 302 клоаки */
-    } else if (row.status === 200) http200 += 1;
+    } else if (row.status === 200 || isOwnHomeRedirect(row)) http200 += 1;
     else if (row.status === 302) http302 += 1;
     else if (typeof row.status === "number") otherHttp += 1;
 

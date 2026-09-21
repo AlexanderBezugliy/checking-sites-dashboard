@@ -14,7 +14,8 @@ import {
   sslDaysLeft,
   sslLabel,
   SSL_WARN_DAYS,
-  statusLabel,
+  httpColumnLabel,
+  isOwnHomeRedirect,
 } from "../lib/site";
 import {
   cloakHint,
@@ -316,10 +317,11 @@ function SortTh({
 }
 
 function httpCellClass(row: SiteRow): string {
-  const code = row.status;
-  if (code === 200 || code === 301) return "mono muted http-cell";
-  if (code === 302) return "mono http-cell";
-  if (code === 503) return "mono cloak-text http-cell";
+  if (isOwnHomeRedirect(row) || row.status === 200 || row.status === 301) {
+    return "mono muted http-cell";
+  }
+  if (row.status === 302) return "mono http-cell";
+  if (row.status === 503) return "mono cloak-text http-cell";
   return "mono down-text http-cell";
 }
 
@@ -420,7 +422,7 @@ function SiteRowBlock({
           </a>
         </td>
         <td data-label="HTTP" className={httpCellClass(row)}>
-          {statusLabel(row)}
+          {httpColumnLabel(row)}
         </td>
         {showCloak ? <CloakCell row={row} /> : null}
         {showSubfolder ? <SubfolderCells row={row} /> : null}

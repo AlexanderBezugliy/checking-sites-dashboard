@@ -7,6 +7,7 @@ import { formatSslSummary } from "../src/lib/format";
 import { buildDigest, computeMetrics, httpMixParts } from "../src/lib/metrics";
 import {
   SSL_WARN_DAYS,
+  isOwnHomeRedirect,
   isSslSoon,
   nsMatchOf,
   nsReason,
@@ -36,11 +37,18 @@ function recount(payload: StatusPayload) {
   const rows = payload.data ?? [];
   const fleet = fleetHostSet(rows);
   const http200 = rows.filter(
-    (row) => row.status === 200 && !isCloaked(row),
+    (row) =>
+      !isCloaked(row) &&
+      !isFleetDrop(row, fleet) &&
+      (row.status === 200 || isOwnHomeRedirect(row)),
   ).length;
   const cloak503 = rows.filter((row) => isCloaked(row)).length;
   const http302 = rows.filter(
-    (row) => row.status === 302 && !isCloaked(row),
+    (row) =>
+      !isCloaked(row) &&
+      !isFleetDrop(row, fleet) &&
+      row.status === 302 &&
+      !isOwnHomeRedirect(row),
   ).length;
   const sslDays = rows
     .map((row) => row.ssl?.daysLeft)
