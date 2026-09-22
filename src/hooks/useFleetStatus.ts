@@ -17,18 +17,6 @@ export function useFleetStatus() {
     setError(null);
   }, []);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await applyResult();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
-    } finally {
-      setLoading(false);
-    }
-  }, [applyResult]);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -64,5 +52,5 @@ export function useFleetStatus() {
     [payload],
   );
 
-  return { payload, metrics, source, error, loading, refresh };
+  return { payload, metrics, source, error, loading };
 }

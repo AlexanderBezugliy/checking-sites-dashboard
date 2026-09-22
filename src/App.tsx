@@ -8,7 +8,7 @@ import type { TableFilter } from "./types";
 
 /** Корень дашборда. Новые блоки подключайте рядом с NsStrip. */
 export default function App() {
-  const { payload, metrics, error, loading, refresh } = useFleetStatus();
+  const { payload, metrics, error, loading } = useFleetStatus();
   const [filter, setFilter] = useState<TableFilter>("all");
   const [tableJump, setTableJump] = useState(0);
 
@@ -23,12 +23,7 @@ export default function App() {
 
       {metrics && payload ? (
         <>
-          <KpiGrid
-            metrics={metrics}
-            payload={payload}
-            loading={loading}
-            onRefresh={() => void refresh()}
-          />
+          <KpiGrid metrics={metrics} payload={payload} />
           <NsStrip
             metrics={metrics}
             onShowProblems={() => showInTable("ns")}

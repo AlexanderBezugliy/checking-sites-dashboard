@@ -316,14 +316,6 @@ h2 {
   line-height: 1.35;
 }
 
-.summary-meta .btn-refresh {
-  margin-top: 2px;
-  width: auto;
-  align-self: flex-start;
-  font-size: clamp(13px, 1.2vw + 8px, 14px);
-  padding: clamp(7px, 1vw, 8px) clamp(14px, 2vw, 18px);
-}
-
 .summary-health.is-ok {
   box-shadow: inset 4px 0 0 var(--ok);
 }
@@ -1806,7 +1798,6 @@ tr.down td {
   .chips button,
   .table-more button,
   .shiny-cta,
-  .btn-refresh,
   .menu-trigger,
   .menu-panel button {
     min-height: 44px;

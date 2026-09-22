@@ -1,18 +1,13 @@
 import { formatKyiv, relativeFromNow } from "../lib/format";
 import { httpMixParts } from "../lib/metrics";
 import type { Metrics, StatusPayload } from "../types";
-import { ShinyButton } from "./ShinyButton";
 
 export function KpiGrid({
   metrics,
   payload,
-  loading,
-  onRefresh,
 }: {
   metrics: Metrics;
   payload: StatusPayload;
-  loading: boolean;
-  onRefresh: () => void;
 }) {
   const nsFailed = metrics.nsProblems.length;
   const mix = httpMixParts(metrics);
@@ -56,9 +51,6 @@ export function KpiGrid({
               </strong>
             </div>
           ) : null}
-          <ShinyButton className="btn-refresh" onClick={onRefresh} disabled={loading}>
-            {loading ? "Обновляю…" : "Обновить"}
-          </ShinyButton>
         </div>
       </article>
 
