@@ -32,12 +32,15 @@ import {
   subfolderOf,
 } from "../lib/subfolder";
 import {
+  countFoot,
   formatGscCount,
   formatGscCtr,
   formatGscPosition,
   gscTitle,
-  percentChange,
-  positionChange,
+  gscWasAbsent,
+  positionFoot,
+  shareFoot,
+  type GscFoot,
 } from "../lib/gsc";
 import { filterAndSortRows, hasIndexColumn, nextSort } from "../lib/table";
 import type { GscInfo, Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
@@ -276,7 +279,10 @@ export function SiteTable({
                 dir={sortDir}
                 onClick={() => toggleSort("duration")}
               />
-              <th>GSC</th>
+              <th className="gsc-head">
+                <span className="gsc-head-title">Google</span>
+                <span className="gsc-head-sub">к прошлым 7 дням</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -463,18 +469,32 @@ function SiteRowBlock({
 function GscMetric({
   label,
   value,
-  change,
+  foot,
 }: {
   label: string;
   value: string;
-  change: { text: string; tone: "up" | "down" | "flat" } | null;
+  foot: GscFoot;
 }) {
   return (
     <div className="gsc-metric">
       <span className="gsc-label">{label}</span>
       <span className="gsc-value">{value}</span>
-      {change ? <span className={`gsc-delta ${change.tone}`}>{change.text}</span> : <span className="gsc-delta flat">—</span>}
+      <span className="gsc-foot">
+        <span className="gsc-was">{foot.was}</span>
+        {foot.change ? <span className={foot.tone}>{foot.change}</span> : null}
+      </span>
     </div>
+  );
+}
+
+function GscNote({ title, text, hint }: { title: string; text: string; hint: string }) {
+  return (
+    <td data-label="Google" className="gsc-cell" title={title}>
+      <div className="gsc-empty">
+        <b>{text}</b>
+        <span>{hint}</span>
+      </div>
+    </td>
   );
 }
 
@@ -482,33 +502,44 @@ function GscCell({ info }: { info: GscInfo | null | undefined }) {
   const title = gscTitle(info);
   if (!info || info.impressions == null) {
     return (
-      <td data-label="GSC" className="gsc-cell muted" title={title}>
-        —
-      </td>
+      <GscNote
+        title={title}
+        text="Нет данных Google"
+        hint="сайт не подключён к Search Console"
+      />
+    );
+  }
+  if (gscWasAbsent(info)) {
+    return (
+      <GscNote
+        title={title}
+        text="В поиске не было"
+        hint="ни в эти 7 дней, ни в прошлые"
+      />
     );
   }
   return (
-    <td data-label="GSC" className="gsc-cell" title={title}>
+    <td data-label="Google" className="gsc-cell" title={title}>
       <div className="gsc-grid">
         <GscMetric
           label="клики"
           value={formatGscCount(info.clicks)}
-          change={percentChange(info.clicks, info.prev_clicks)}
+          foot={countFoot(info.clicks, info.prev_clicks)}
         />
         <GscMetric
           label="показы"
           value={formatGscCount(info.impressions)}
-          change={percentChange(info.impressions, info.prev_impressions)}
+          foot={countFoot(info.impressions, info.prev_impressions)}
         />
         <GscMetric
-          label="позиция"
+          label="место"
           value={formatGscPosition(info.position)}
-          change={positionChange(info.position, info.prev_position)}
+          foot={positionFoot(info.position, info.prev_position)}
         />
         <GscMetric
-          label="CTR"
+          label="доля кликов"
           value={formatGscCtr(info.ctr)}
-          change={percentChange(info.ctr, info.prev_ctr)}
+          foot={shareFoot(info.ctr, info.prev_ctr)}
         />
       </div>
     </td>

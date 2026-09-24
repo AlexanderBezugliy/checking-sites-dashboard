@@ -1232,15 +1232,59 @@ table.index-pages th {
   border: 1px solid var(--line);
 }
 
-.gsc-cell {
-  min-width: 280px;
+.gsc-head {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
   white-space: normal;
+  min-width: 320px;
+}
+
+.gsc-head-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gsc-head-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.gsc-cell {
+  min-width: 320px;
+  white-space: normal;
+}
+
+.gsc-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 72px;
+  justify-content: center;
+}
+
+.gsc-empty b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gsc-empty span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .gsc-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 16px;
+  gap: 10px 18px;
 }
 
 .gsc-metric {
@@ -1266,21 +1310,29 @@ table.index-pages th {
   line-height: 1.2;
 }
 
-.gsc-delta {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 500;
+.gsc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
-.gsc-delta.up {
+.gsc-was {
+  color: var(--muted);
+}
+
+.gsc-foot .up {
   color: var(--ok);
+  font-weight: 600;
 }
 
-.gsc-delta.down {
+.gsc-foot .down {
   color: var(--down);
+  font-weight: 600;
 }
 
-.gsc-delta.flat {
+.gsc-foot .flat {
   color: var(--muted);
 }
 
@@ -2182,7 +2234,7 @@ tr.down td {
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="индекс"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="SSL"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"],
-  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"] {
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="Google"] {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: 76px minmax(0, 1fr);
@@ -2238,7 +2290,7 @@ tr.down td {
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="индекс"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="SSL"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"]::before,
-  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"]::before {
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="Google"]::before {
     content: attr(data-label);
     color: var(--muted);
     text-transform: uppercase;
@@ -2252,14 +2304,14 @@ tr.down td {
     max-width: none;
   }
 
-  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"] {
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="Google"] {
     display: block;
     margin-top: 4px;
     padding-top: 10px;
     border-top: 1px solid var(--line);
   }
 
-  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"]::before {
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="Google"]::before {
     display: block;
     margin-bottom: 8px;
   }
