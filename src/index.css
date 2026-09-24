@@ -157,7 +157,7 @@ h2 {
   line-height: 1.2;
   font-weight: 500;
   border: 1px solid transparent;
-  border-radius: 360px;
+  border-radius: 0;
   color: var(--shiny-cta-fg);
   background:
     linear-gradient(var(--shiny-cta-bg), var(--shiny-cta-bg)) padding-box,
