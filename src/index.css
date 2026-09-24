@@ -87,7 +87,7 @@ input {
 .shell {
   box-sizing: border-box;
   width: 100%;
-  max-width: calc(1280px + 2 * var(--gutter));
+  max-width: none;
   margin-inline: auto;
   padding: clamp(16px, 3vw, 36px)
     max(var(--gutter), env(safe-area-inset-left), env(safe-area-inset-right))
@@ -1232,6 +1232,58 @@ table.index-pages th {
   border: 1px solid var(--line);
 }
 
+.gsc-cell {
+  min-width: 280px;
+  white-space: normal;
+}
+
+.gsc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.gsc-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+}
+
+.gsc-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gsc-value {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.gsc-delta {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gsc-delta.up {
+  color: var(--ok);
+}
+
+.gsc-delta.down {
+  color: var(--down);
+}
+
+.gsc-delta.flat {
+  color: var(--muted);
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -2129,7 +2181,8 @@ tr.down td {
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="склейка"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="индекс"],
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="SSL"],
-  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"] {
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"],
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"] {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: 76px minmax(0, 1fr);
@@ -2184,7 +2237,8 @@ tr.down td {
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="склейка"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="индекс"]::before,
   .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="SSL"]::before,
-  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"]::before {
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="время"]::before,
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"]::before {
     content: attr(data-label);
     color: var(--muted);
     text-transform: uppercase;
@@ -2196,6 +2250,18 @@ tr.down td {
 
   .ns-cell {
     max-width: none;
+  }
+
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"] {
+    display: block;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+
+  .table-scroll > table > tbody > tr:not(.index-detail-row) > td[data-label="GSC"]::before {
+    display: block;
+    margin-bottom: 8px;
   }
 
   .status {

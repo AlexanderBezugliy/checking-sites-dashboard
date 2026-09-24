@@ -74,6 +74,11 @@ export type SiteRow = {
    * Не брать из `status` / `redirect`.
    */
   cloak?: CloakInfo | null;
+  /**
+   * Динамика Search Console: последние 7 дней и предыдущие 7.
+   * `null` — сайт без аккаунта GSC.
+   */
+  gsc?: GscInfo | null;
 };
 
 export type IndexPage = {
@@ -134,11 +139,32 @@ export type IndexProblem = {
   ratio: string;
 };
 
+export type GscInfo = {
+  siteUrl?: string | null;
+  start?: string | null;
+  end?: string | null;
+  prev_start?: string | null;
+  prev_end?: string | null;
+  clicks?: number | null;
+  impressions?: number | null;
+  ctr?: number | null;
+  position?: number | null;
+  prev_clicks?: number | null;
+  prev_impressions?: number | null;
+  prev_ctr?: number | null;
+  prev_position?: number | null;
+  checked_at?: string | null;
+  error?: string | null;
+  stale?: true;
+};
+
 export type StatusPayload = {
   last_update: string;
   last_digest_at?: string | null;
   /** Время последней SEO-проверки (GSC), отдельно от аптайма. */
   index_last_update?: string | null;
+  /** Время последней динамики кликов и показов. */
+  gsc_last_update?: string | null;
   index_queue_cursor?: number | null;
   total_sites: number;
   alive_count: number;

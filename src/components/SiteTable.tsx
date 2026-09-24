@@ -31,8 +31,16 @@ import {
   subfolderHint,
   subfolderOf,
 } from "../lib/subfolder";
+import {
+  formatGscCount,
+  formatGscCtr,
+  formatGscPosition,
+  gscTitle,
+  percentChange,
+  positionChange,
+} from "../lib/gsc";
 import { filterAndSortRows, hasIndexColumn, nextSort } from "../lib/table";
-import type { Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
+import type { GscInfo, Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
 import { MenuSelect, type MenuGroup } from "./MenuSelect";
 import { SiteIndexDetail } from "./SiteIndexDetail";
 
@@ -160,7 +168,7 @@ export function SiteTable({
   }
 
   const colSpan =
-    6 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0) + (showCloak ? 1 : 0);
+    7 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0) + (showCloak ? 1 : 0);
   const sortChoices = showIndex
     ? SORT_OPTIONS
     : SORT_OPTIONS.filter((option) => option.key !== "index");
@@ -268,6 +276,7 @@ export function SiteTable({
                 dir={sortDir}
                 onClick={() => toggleSort("duration")}
               />
+              <th>GSC</th>
             </tr>
           </thead>
           <tbody>
@@ -438,6 +447,7 @@ function SiteRowBlock({
         <td data-label="время" className="mono">
           {formatMs(row.duration)}
         </td>
+        <GscCell info={row.gsc} />
       </tr>
       {expanded && canExpand ? (
         <tr className="index-detail-row">
@@ -447,6 +457,61 @@ function SiteRowBlock({
         </tr>
       ) : null}
     </Fragment>
+  );
+}
+
+function GscMetric({
+  label,
+  value,
+  change,
+}: {
+  label: string;
+  value: string;
+  change: { text: string; tone: "up" | "down" | "flat" } | null;
+}) {
+  return (
+    <div className="gsc-metric">
+      <span className="gsc-label">{label}</span>
+      <span className="gsc-value">{value}</span>
+      {change ? <span className={`gsc-delta ${change.tone}`}>{change.text}</span> : <span className="gsc-delta flat">—</span>}
+    </div>
+  );
+}
+
+function GscCell({ info }: { info: GscInfo | null | undefined }) {
+  const title = gscTitle(info);
+  if (!info || info.impressions == null) {
+    return (
+      <td data-label="GSC" className="gsc-cell muted" title={title}>
+        —
+      </td>
+    );
+  }
+  return (
+    <td data-label="GSC" className="gsc-cell" title={title}>
+      <div className="gsc-grid">
+        <GscMetric
+          label="клики"
+          value={formatGscCount(info.clicks)}
+          change={percentChange(info.clicks, info.prev_clicks)}
+        />
+        <GscMetric
+          label="показы"
+          value={formatGscCount(info.impressions)}
+          change={percentChange(info.impressions, info.prev_impressions)}
+        />
+        <GscMetric
+          label="позиция"
+          value={formatGscPosition(info.position)}
+          change={positionChange(info.position, info.prev_position)}
+        />
+        <GscMetric
+          label="CTR"
+          value={formatGscCtr(info.ctr)}
+          change={percentChange(info.ctr, info.prev_ctr)}
+        />
+      </div>
+    </td>
   );
 }
 
