@@ -120,5 +120,5 @@ export function gscTitle(info: GscInfo | null | undefined): string {
   const range = info.start && info.end ? `${info.start} — ${info.end}` : "";
   const prev = info.prev_start && info.prev_end ? `${info.prev_start} — ${info.prev_end}` : "";
   const stale = info.stale ? " Данные вчерашние, сегодняшний запрос не удался." : "";
-  return `Последние 7 дней ${range} против ${prev}.${stale}`.trim();
+  return `Последние 14 дней ${range} против ${prev}.${stale}`.trim();
 }

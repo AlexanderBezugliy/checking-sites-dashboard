@@ -281,7 +281,7 @@ export function SiteTable({
               />
               <th className="gsc-head">
                 <span className="gsc-head-title">Google</span>
-                <span className="gsc-head-sub">к прошлым 7 дням</span>
+                <span className="gsc-head-sub">к прошлым 14 дням</span>
               </th>
             </tr>
           </thead>
@@ -514,7 +514,7 @@ function GscCell({ info }: { info: GscInfo | null | undefined }) {
       <GscNote
         title={title}
         text="В поиске не было"
-        hint="ни в эти 7 дней, ни в прошлые"
+        hint="ни в эти 14 дней, ни в прошлые"
       />
     );
   }

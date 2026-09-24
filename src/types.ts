@@ -75,7 +75,7 @@ export type SiteRow = {
    */
   cloak?: CloakInfo | null;
   /**
-   * Динамика Search Console: последние 7 дней и предыдущие 7.
+   * Динамика Search Console: последние 14 дней и предыдущие 14.
    * `null` — сайт без аккаунта GSC.
    */
   gsc?: GscInfo | null;
