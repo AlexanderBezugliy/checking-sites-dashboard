@@ -69,6 +69,12 @@ export function isIndexOk(row: SiteRow): boolean {
   return row.index?.indexed === true;
 }
 
+/** Главная не в индексе, часть страниц не в индексе, или проверка устарела. */
+export function isIndexIssue(row: SiteRow): boolean {
+  if (isIndexSkip(row) || isNoindex(row)) return false;
+  return isIndexBad(row) || isIndexPartial(row) || isIndexStale(row);
+}
+
 export function isIndexPartial(row: SiteRow): boolean {
   const info = row.index;
   if (!info || info.indexed !== true) return false;

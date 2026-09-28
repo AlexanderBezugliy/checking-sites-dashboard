@@ -532,10 +532,7 @@ describe("table filter / sort", () => {
       row({ url: "https://dead-ssl.com", status: "SSL_ERROR", alive: false }),
     ];
     const soon = filterAndSortRows(sslRows, "", "ssl", "ssl", "asc");
-    expect(soon.map((item) => item.url)).toEqual([
-      "https://dead-ssl.com",
-      "https://soon.com",
-    ]);
+    expect(soon.map((item) => item.url)).toEqual(["https://soon.com"]);
 
     const bySsl = filterAndSortRows(sslRows, "", "all", "ssl", "asc");
     expect(bySsl.map((item) => item.url)).toEqual([

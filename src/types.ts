@@ -75,7 +75,7 @@ export type SiteRow = {
    */
   cloak?: CloakInfo | null;
   /**
-   * Динамика Search Console: последние 14 дней и предыдущие 14.
+   * Динамика Search Console. Окно задаёт монитор в `start` / `end` / `prev_*`.
    * `null` — сайт без аккаунта GSC.
    */
   gsc?: GscInfo | null;
@@ -214,6 +214,8 @@ export type Metrics = {
   dnsErrors: number;
   sslErrors: number;
   sslSoon: number;
+  /** SSL ≤ 7 дней только у живых: HTTP 200 или клоака 503. */
+  sslLive: number;
   sslMinDays: number | null;
   sslMaxDays: number | null;
   foreignRedirects: number;
@@ -241,6 +243,8 @@ export type Metrics = {
   /** Skip + 301 на money-сайт из этого же status.json. Не падение. */
   homesDrop: number;
   homesPartial: number;
+  /** Главная не в индексе, частичная индексация или stale. Без двойного счёта. */
+  indexIssues: number;
   pagesIndexedTotal: number;
   pagesCheckedTotal: number;
   indexQueueCursor: number | null;
@@ -268,6 +272,21 @@ export type TableFilter =
   | "indexnoindex"
   | "indexskip"
   | "indexdrop"
-  | "indexunknown";
-export type SortKey = "host" | "status" | "duration" | "zone" | "ssl" | "index";
+  | "indexunknown"
+  | "indexissue";
+export type SortKey =
+  | "host"
+  | "status"
+  | "duration"
+  | "zone"
+  | "ssl"
+  | "index"
+  | "cloak"
+  | "subfolder"
+  | "glue"
+  | "ns"
+  | "clicks"
+  | "impressions"
+  | "position"
+  | "ctr";
 export type SortDir = "asc" | "desc";

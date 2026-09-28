@@ -1,3 +1,4 @@
+import { isCloaked } from "./cloak";
 import type { NsMatch, SiteRow, StatusKind } from "../types";
 
 const COMPOUND_ZONES = ["org.uk", "co.uk", "gb.net"];
@@ -68,6 +69,17 @@ export function isSslSoon(row: SiteRow): boolean {
   return days != null && days <= SSL_WARN_DAYS;
 }
 
+/** Живой ответ для SSL: HTTP 200 или клоака 503. Упавший сайт сюда не входит. */
+export function isLiveHttp(row: SiteRow): boolean {
+  if (isCloaked(row)) return true;
+  return row.status === 200 || isOwnHomeRedirect(row);
+}
+
+/** Проблема SSL только у живого сайта. Если ответа нет, сертификат не показываем. */
+export function isLiveSslProblem(row: SiteRow): boolean {
+  return isLiveHttp(row) && isSslSoon(row);
+}
+
 export function sslLabel(row: SiteRow): string {
   if (row.status === "SSL_ERROR") return "истёк";
   if (row.ssl?.daysLeft == null) return "—";
@@ -132,6 +144,6 @@ export function statusKindLabel(kind: StatusKind): string {
   if (kind === "ok") return "200";
   if (kind === "cloak") return "клоака";
   if (kind === "redirect") return "302";
-  if (kind === "down") return "падение";
+  if (kind === "down") return "ответ сервера";
   return "внимание";
 }

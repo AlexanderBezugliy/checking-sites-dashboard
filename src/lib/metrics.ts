@@ -13,6 +13,7 @@ import {
   indexReason,
   indexRatioLabel,
   isIndexBad,
+  isIndexIssue,
   isIndexOk,
   isIndexPartial,
   isIndexSkip,
@@ -33,6 +34,7 @@ import {
   nsProvider,
   nsReason,
   SSL_WARN_DAYS,
+  isLiveSslProblem,
   statusLabel,
   zoneOf,
 } from "./site";
@@ -133,6 +135,8 @@ export function computeMetrics(payload: StatusPayload): Metrics {
   let homesSkip = 0;
   let homesDrop = 0;
   let homesPartial = 0;
+  let indexIssues = 0;
+  let sslLive = 0;
   let pagesIndexedTotal = 0;
   let pagesCheckedTotal = 0;
   const sslDays: number[] = [];
@@ -191,6 +195,8 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     else if (bucket === "homesDrop") homesDrop += 1;
 
     if (isIndexPartial(row)) homesPartial += 1;
+    if (isIndexIssue(row)) indexIssues += 1;
+    if (isLiveSslProblem(row)) sslLive += 1;
     if (hasIndexData(row)) {
       pagesIndexedTotal += row.index?.pages_indexed ?? 0;
       pagesCheckedTotal += row.index?.pages_checked ?? 0;
@@ -228,6 +234,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     dnsErrors,
     sslErrors,
     sslSoon,
+    sslLive,
     sslMinDays: sslDays.length ? Math.min(...sslDays) : null,
     sslMaxDays: sslDays.length ? Math.max(...sslDays) : null,
     foreignRedirects,
@@ -254,6 +261,7 @@ export function computeMetrics(payload: StatusPayload): Metrics {
     homesSkip,
     homesDrop,
     homesPartial,
+    indexIssues,
     pagesIndexedTotal,
     pagesCheckedTotal,
     indexQueueCursor: payload.index_queue_cursor ?? null,

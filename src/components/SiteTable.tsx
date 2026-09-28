@@ -36,8 +36,8 @@ import {
   formatGscCount,
   formatGscCtr,
   formatGscPosition,
+  gscFleetWindow,
   gscTitle,
-  gscWasAbsent,
   positionFoot,
   shareFoot,
   type GscFoot,
@@ -52,6 +52,7 @@ const MOBILE_TABLE = "(max-width: 720px)";
 const FILTER_HTTP: TableFilter[] = ["all", "200", "302", "503", "down", "ssl"];
 const FILTER_NS: TableFilter[] = ["ns", "nsok", "nsbad", "nsskip"];
 const FILTER_INDEX: TableFilter[] = [
+  "indexissue",
   "indexok",
   "indexbad",
   "indexpartial",
@@ -65,9 +66,17 @@ const FILTER_INDEX: TableFilter[] = [
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "host", label: "хост" },
   { key: "status", label: "HTTP" },
+  { key: "cloak", label: "клоака" },
+  { key: "subfolder", label: "подпапка" },
+  { key: "glue", label: "склейка" },
+  { key: "ns", label: "NS" },
   { key: "ssl", label: "SSL" },
   { key: "index", label: "индекс" },
   { key: "duration", label: "время" },
+  { key: "clicks", label: "клики" },
+  { key: "impressions", label: "показы" },
+  { key: "position", label: "место" },
+  { key: "ctr", label: "доля кликов" },
 ];
 
 function filterCaption(
@@ -82,7 +91,8 @@ function filterCaption(
   if (id === "nsok") return { label: "совпало", count: metrics.nsMatchOk };
   if (id === "nsbad") return { label: "не совпало", count: metrics.nsMatchBad };
   if (id === "nsskip") return { label: "без эталона", count: metrics.nsMatchSkip };
-  if (id === "ssl") return { label: "SSL", count: metrics.sslErrors + metrics.sslSoon };
+  if (id === "ssl") return { label: "SSL", count: metrics.sslLive };
+  if (id === "indexissue") return { label: "индексация", count: metrics.indexIssues };
   if (id === "indexok") return { label: "индекс ✓", count: metrics.homesIndexed };
   if (id === "indexbad") return { label: "не в индексе", count: metrics.homesNotIndexed };
   if (id === "indexpartial") return { label: "частично", count: metrics.homesPartial };
@@ -91,7 +101,7 @@ function filterCaption(
   if (id === "indexskip") return { label: "skip", count: metrics.homesSkip };
   if (id === "indexdrop") return { label: "drop", count: metrics.homesDrop };
   if (id === "indexunknown") return { label: "нет ответа", count: metrics.homesUnknown };
-  return { label: "падения", count: metrics.failed };
+  return { label: "ответ сервера", count: metrics.failed };
 }
 
 function filterOptions(
@@ -171,10 +181,16 @@ export function SiteTable({
   }
 
   const colSpan =
-    7 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0) + (showCloak ? 1 : 0);
-  const sortChoices = showIndex
-    ? SORT_OPTIONS
-    : SORT_OPTIONS.filter((option) => option.key !== "index");
+    10 + (showIndex ? 1 : 0) + (showSubfolder ? 2 : 0) + (showCloak ? 1 : 0);
+  const hiddenSorts = new Set<SortKey>();
+  if (!showIndex) hiddenSorts.add("index");
+  if (!showCloak) hiddenSorts.add("cloak");
+  if (!showSubfolder) {
+    hiddenSorts.add("subfolder");
+    hiddenSorts.add("glue");
+  }
+  const sortChoices = SORT_OPTIONS.filter((option) => !hiddenSorts.has(option.key));
+  const gscWindow = gscFleetWindow(rows);
   const sortLabel = sortChoices.find((option) => option.key === sortKey)?.label ?? sortKey;
   const activeFilter = filterCaption(filter, metrics);
 
@@ -212,6 +228,7 @@ export function SiteTable({
           groups={filterGroups(metrics, showIndex)}
           onChange={onFilterChange}
         />
+        {gscWindow ? <p className="gsc-range">Google {gscWindow}</p> : null}
         {compact ? (
           <MenuSelect
             label="сортировка"
@@ -251,14 +268,36 @@ export function SiteTable({
                 dir={sortDir}
                 onClick={() => toggleSort("status")}
               />
-              {showCloak ? <th>клоака</th> : null}
+              {showCloak ? (
+                <SortTh
+                  label="клоака"
+                  active={sortKey === "cloak"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("cloak")}
+                />
+              ) : null}
               {showSubfolder ? (
                 <>
-                  <th>подпапка</th>
-                  <th>склейка</th>
+                  <SortTh
+                    label="подпапка"
+                    active={sortKey === "subfolder"}
+                    dir={sortDir}
+                    onClick={() => toggleSort("subfolder")}
+                  />
+                  <SortTh
+                    label="склейка"
+                    active={sortKey === "glue"}
+                    dir={sortDir}
+                    onClick={() => toggleSort("glue")}
+                  />
                 </>
               ) : null}
-              <th>NS</th>
+              <SortTh
+                label="NS"
+                active={sortKey === "ns"}
+                dir={sortDir}
+                onClick={() => toggleSort("ns")}
+              />
               {showIndex ? (
                 <SortTh
                   label="индекс"
@@ -279,10 +318,30 @@ export function SiteTable({
                 dir={sortDir}
                 onClick={() => toggleSort("duration")}
               />
-              <th className="gsc-head">
-                <span className="gsc-head-title">Google</span>
-                <span className="gsc-head-sub">к прошлым 14 дням</span>
-              </th>
+              <SortTh
+                label="клики"
+                active={sortKey === "clicks"}
+                dir={sortDir}
+                onClick={() => toggleSort("clicks")}
+              />
+              <SortTh
+                label="показы"
+                active={sortKey === "impressions"}
+                dir={sortDir}
+                onClick={() => toggleSort("impressions")}
+              />
+              <SortTh
+                label="место"
+                active={sortKey === "position"}
+                dir={sortDir}
+                onClick={() => toggleSort("position")}
+              />
+              <SortTh
+                label="доля кликов"
+                active={sortKey === "ctr"}
+                dir={sortDir}
+                onClick={() => toggleSort("ctr")}
+              />
             </tr>
           </thead>
           <tbody>
@@ -420,7 +479,7 @@ function SiteRowBlock({
             )}
             <span
               className={`status-dot ${up ? "ok" : "down"}`}
-              aria-label={up ? "живой" : "падение"}
+              aria-label={up ? "живой" : "нет ответа"}
             >
               <i />
             </span>
@@ -453,7 +512,7 @@ function SiteRowBlock({
         <td data-label="время" className="mono">
           {formatMs(row.duration)}
         </td>
-        <GscCell info={row.gsc} />
+        <GscCells info={row.gsc} />
       </tr>
       {expanded && canExpand ? (
         <tr className="index-detail-row">
@@ -466,18 +525,9 @@ function SiteRowBlock({
   );
 }
 
-function GscMetric({
-  label,
-  value,
-  foot,
-}: {
-  label: string;
-  value: string;
-  foot: GscFoot;
-}) {
+function GscValue({ value, foot }: { value: string; foot: GscFoot }) {
   return (
     <div className="gsc-metric">
-      <span className="gsc-label">{label}</span>
       <span className="gsc-value">{value}</span>
       <span className="gsc-foot">
         <span className="gsc-was">{foot.was}</span>
@@ -487,62 +537,45 @@ function GscMetric({
   );
 }
 
-function GscNote({ title, text, hint }: { title: string; text: string; hint: string }) {
-  return (
-    <td data-label="Google" className="gsc-cell" title={title}>
-      <div className="gsc-empty">
-        <b>{text}</b>
-        <span>{hint}</span>
-      </div>
-    </td>
-  );
-}
-
-function GscCell({ info }: { info: GscInfo | null | undefined }) {
+function GscCells({ info }: { info: GscInfo | null | undefined }) {
   const title = gscTitle(info);
   if (!info || info.impressions == null) {
     return (
-      <GscNote
-        title={title}
-        text="Нет данных Google"
-        hint="сайт не подключён к Search Console"
-      />
-    );
-  }
-  if (gscWasAbsent(info)) {
-    return (
-      <GscNote
-        title={title}
-        text="В поиске не было"
-        hint="ни в эти 14 дней, ни в прошлые"
-      />
+      <>
+        <td data-label="клики" className="gsc-cell muted" title={title}>—</td>
+        <td data-label="показы" className="gsc-cell muted" title={title}>—</td>
+        <td data-label="место" className="gsc-cell muted" title={title}>—</td>
+        <td data-label="доля кликов" className="gsc-cell muted" title={title}>—</td>
+      </>
     );
   }
   return (
-    <td data-label="Google" className="gsc-cell" title={title}>
-      <div className="gsc-grid">
-        <GscMetric
-          label="клики"
+    <>
+      <td data-label="клики" className="gsc-cell" title={title}>
+        <GscValue
           value={formatGscCount(info.clicks)}
           foot={countFoot(info.clicks, info.prev_clicks)}
         />
-        <GscMetric
-          label="показы"
+      </td>
+      <td data-label="показы" className="gsc-cell" title={title}>
+        <GscValue
           value={formatGscCount(info.impressions)}
           foot={countFoot(info.impressions, info.prev_impressions)}
         />
-        <GscMetric
-          label="место"
+      </td>
+      <td data-label="место" className="gsc-cell" title={title}>
+        <GscValue
           value={formatGscPosition(info.position)}
           foot={positionFoot(info.position, info.prev_position)}
         />
-        <GscMetric
-          label="доля кликов"
+      </td>
+      <td data-label="доля кликов" className="gsc-cell" title={title}>
+        <GscValue
           value={formatGscCtr(info.ctr)}
           foot={shareFoot(info.ctr, info.prev_ctr)}
         />
-      </div>
-    </td>
+      </td>
+    </>
   );
 }
 

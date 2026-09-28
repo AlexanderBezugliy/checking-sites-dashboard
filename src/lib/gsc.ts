@@ -1,4 +1,5 @@
-import type { GscInfo } from "../types";
+import { hostnameOf } from "./site";
+import type { GscInfo, StatusPayload } from "../types";
 
 export type GscTone = "up" | "down" | "flat";
 
@@ -114,11 +115,51 @@ export function gscWasAbsent(info: GscInfo): boolean {
   return now === 0 && prev === 0;
 }
 
+/** Окно из монитора: даты текущего периода против предыдущего. */
+export function gscWindowLabel(info: GscInfo | null | undefined): string {
+  if (!info) return "";
+  const range = info.start && info.end ? `${info.start} — ${info.end}` : "";
+  const prev = info.prev_start && info.prev_end ? `${info.prev_start} — ${info.prev_end}` : "";
+  if (range && prev) return `${range} против ${prev}`;
+  return range || prev;
+}
+
+export function gscFleetWindow(rows: { gsc?: GscInfo | null }[]): string {
+  for (const row of rows) {
+    const label = gscWindowLabel(row.gsc);
+    if (label) return label;
+  }
+  return "";
+}
+
+export function payloadHasGsc(payload: StatusPayload): boolean {
+  return payload.data.some((row) => row.gsc?.impressions != null);
+}
+
+/** К утреннему status.json приклеить клики из снимка, где блок Google ещё был. */
+export function mergeGsc(current: StatusPayload, source: StatusPayload): StatusPayload {
+  const byHost = new Map<string, GscInfo>();
+  for (const row of source.data) {
+    if (row.gsc?.impressions == null) continue;
+    byHost.set(hostnameOf(row.url), row.gsc);
+  }
+  if (!byHost.size) return current;
+  return {
+    ...current,
+    gsc_last_update: current.gsc_last_update || source.gsc_last_update || null,
+    data: current.data.map((row) => {
+      if (row.gsc?.impressions != null) return row;
+      const gsc = byHost.get(hostnameOf(row.url));
+      return gsc ? { ...row, gsc } : row;
+    }),
+  };
+}
+
 export function gscTitle(info: GscInfo | null | undefined): string {
   if (!info) return "Нет аккаунта Search Console";
   if (info.error && info.impressions == null) return info.error;
-  const range = info.start && info.end ? `${info.start} — ${info.end}` : "";
-  const prev = info.prev_start && info.prev_end ? `${info.prev_start} — ${info.prev_end}` : "";
+  const windowLabel = gscWindowLabel(info);
   const stale = info.stale ? " Данные вчерашние, сегодняшний запрос не удался." : "";
-  return `Последние 14 дней ${range} против ${prev}.${stale}`.trim();
+  if (!windowLabel) return stale.trim() || "Нет дат окна Search Console";
+  return `${windowLabel}.${stale}`.trim();
 }

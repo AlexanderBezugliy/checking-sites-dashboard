@@ -8,6 +8,7 @@ import { buildDigest, computeMetrics, httpMixParts } from "../src/lib/metrics";
 import {
   SSL_WARN_DAYS,
   isOwnHomeRedirect,
+  isLiveSslProblem,
   isSslSoon,
   nsMatchOf,
   nsReason,
@@ -166,7 +167,7 @@ function assertMetricsMatchPayload(payload: StatusPayload) {
     expected.nsMatchSkip,
   );
   expect(filterAndSortRows(payload.data, "", "ssl", "host", "asc")).toHaveLength(
-    payload.data.filter(isSslSoon).length,
+    payload.data.filter(isLiveSslProblem).length,
   );
   expect(filterAndSortRows(payload.data, "", "all", "host", "asc")).toHaveLength(
     expected.rows,

@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { IndexStrip } from "./components/IndexStrip";
 import { KpiGrid } from "./components/KpiGrid";
-import { NsStrip } from "./components/NsStrip";
 import { SiteTable } from "./components/SiteTable";
 import { useFleetStatus } from "./hooks/useFleetStatus";
 import type { TableFilter } from "./types";
 
-/** Корень дашборда. Новые блоки подключайте рядом с NsStrip. */
 export default function App() {
   const { payload, metrics, error, loading } = useFleetStatus();
   const [filter, setFilter] = useState<TableFilter>("all");
@@ -23,22 +20,12 @@ export default function App() {
 
       {metrics && payload ? (
         <>
-          <KpiGrid metrics={metrics} payload={payload} />
-          <NsStrip
+          <KpiGrid
             metrics={metrics}
-            onShowProblems={() => showInTable("ns")}
-            onShowMismatches={() => showInTable("nsbad")}
-          />
-          <IndexStrip
-            metrics={metrics}
+            payload={payload}
             rows={payload.data}
-            onShowBad={() => showInTable("indexbad")}
-            onShowPartial={() => showInTable("indexpartial")}
-            onShowStale={() => showInTable("indexstale")}
-            onShowNoindex={() => showInTable("indexnoindex")}
-            onShowSkip={() => showInTable("indexskip")}
-            onShowDrop={() => showInTable("indexdrop")}
-            onShowUnknown={() => showInTable("indexunknown")}
+            filter={filter}
+            onFilter={showInTable}
           />
           <SiteTable
             rows={payload.data}

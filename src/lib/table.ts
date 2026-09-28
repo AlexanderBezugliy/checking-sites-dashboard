@@ -3,6 +3,7 @@ import {
   hasIndexData,
   indexReportPages,
   isIndexBad,
+  isIndexIssue,
   isIndexOk,
   isIndexPartial,
   isIndexSkip,
@@ -15,16 +16,16 @@ import {
   hostnameOf,
   httpColumnLabel,
   isOwnHomeRedirect,
-  isSslSoon,
+  isLiveSslProblem,
   nsMatchOf,
   nsProvider,
   nsReason,
   sslDaysLeft,
   zoneOf,
 } from "./site";
-import { isCloaked } from "./cloak";
+import { cloakLabel, isCloaked } from "./cloak";
 import { fleetHostSet, isFleetDrop, isSiteUpForDashboard } from "./drop";
-import { subfolderOf } from "./subfolder";
+import { subfolderFolderLabel, subfolderGlueLabel, subfolderOf } from "./subfolder";
 
 export function matchesFilter(
   row: SiteRow,
@@ -43,7 +44,8 @@ export function matchesFilter(
   if (filter === "nsok") return nsMatchOf(row) === true;
   if (filter === "nsbad") return nsMatchOf(row) === false;
   if (filter === "nsskip") return nsMatchOf(row) == null;
-  if (filter === "ssl") return isSslSoon(row);
+  if (filter === "ssl") return isLiveSslProblem(row);
+  if (filter === "indexissue") return isIndexIssue(row);
   if (filter === "indexok") return isIndexOk(row);
   if (filter === "indexbad") return isIndexBad(row);
   if (filter === "indexpartial") return isIndexPartial(row);
@@ -101,6 +103,41 @@ export function matchesQuery(row: SiteRow, query: string): boolean {
   );
 }
 
+function textRank(value: string): string {
+  const text = value.trim();
+  return !text || text === "—" ? "" : text;
+}
+
+function compareText(a: string, b: string, direction: number, hostA: string, hostB: string): number {
+  const left = textRank(a);
+  const right = textRank(b);
+  if (!left && !right) return hostA.localeCompare(hostB, "ru");
+  if (!left) return 1;
+  if (!right) return -1;
+  const byText = left.localeCompare(right, "ru");
+  if (byText !== 0) return direction * byText;
+  return hostA.localeCompare(hostB, "ru");
+}
+
+function compareNumber(
+  left: number | null,
+  right: number | null,
+  direction: number,
+  hostA: string,
+  hostB: string,
+): number {
+  if (left == null && right == null) return hostA.localeCompare(hostB, "ru");
+  if (left == null) return 1;
+  if (right == null) return -1;
+  if (left === right) return hostA.localeCompare(hostB, "ru");
+  return direction * (left - right);
+}
+
+function gscNumber(row: SiteRow, key: "clicks" | "impressions" | "position" | "ctr"): number | null {
+  const value = row.gsc?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function compareRows(a: SiteRow, b: SiteRow, sortKey: SortKey): number {
   if (sortKey === "duration") return (a.duration || 0) - (b.duration || 0);
   if (sortKey === "status") {
@@ -146,6 +183,37 @@ export function filterAndSortRows(
         if (right == null) return -1;
         return direction * (left - right);
       }
+      const hostA = hostnameOf(a.url);
+      const hostB = hostnameOf(b.url);
+      if (sortKey === "clicks" || sortKey === "impressions" || sortKey === "position" || sortKey === "ctr") {
+        return compareNumber(gscNumber(a, sortKey), gscNumber(b, sortKey), direction, hostA, hostB);
+      }
+      if (sortKey === "cloak") {
+        return compareText(cloakLabel(a.cloak ?? null), cloakLabel(b.cloak ?? null), direction, hostA, hostB);
+      }
+      if (sortKey === "subfolder") {
+        return compareText(
+          subfolderFolderLabel(subfolderOf(a)),
+          subfolderFolderLabel(subfolderOf(b)),
+          direction,
+          hostA,
+          hostB,
+        );
+      }
+      if (sortKey === "glue") {
+        return compareText(
+          subfolderGlueLabel(subfolderOf(a)?.glue),
+          subfolderGlueLabel(subfolderOf(b)?.glue),
+          direction,
+          hostA,
+          hostB,
+        );
+      }
+      if (sortKey === "ns") {
+        const left = (a.dns?.ns ?? []).join(" ") || nsReason(a) || "";
+        const right = (b.dns?.ns ?? []).join(" ") || nsReason(b) || "";
+        return compareText(left, right, direction, hostA, hostB);
+      }
       return direction * compareRows(a, b, sortKey);
     });
 }
@@ -167,7 +235,12 @@ export function nextSort(
       nextKey === "host" ||
       nextKey === "zone" ||
       nextKey === "ssl" ||
-      nextKey === "index"
+      nextKey === "index" ||
+      nextKey === "position" ||
+      nextKey === "cloak" ||
+      nextKey === "subfolder" ||
+      nextKey === "glue" ||
+      nextKey === "ns"
         ? "asc"
         : "desc",
   };
