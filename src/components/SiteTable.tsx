@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { ShinyButton } from "./ShinyButton";
 import { formatMs } from "../lib/format";
 import { fleetHostSet, isFleetDrop, isSiteUpForDashboard } from "../lib/drop";
 import {
@@ -43,6 +44,13 @@ import {
   type GscFoot,
 } from "../lib/gsc";
 import { filterAndSortRows, hasIndexColumn, nextSort } from "../lib/table";
+import {
+  INDEX_SUBMIT_TOKENS,
+  indexSubmitCountLabel,
+  indexSubmitUrls,
+} from "../lib/indexQueue";
+import { readIndexSent, rememberIndexSent, type IndexSent } from "../lib/indexSent";
+import { requestIndexSubmit } from "../lib/indexSubmitClient";
 import type { GscInfo, Metrics, SiteRow, SortDir, SortKey, TableFilter } from "../types";
 import { MenuSelect, type MenuGroup } from "./MenuSelect";
 import { SiteIndexDetail } from "./SiteIndexDetail";
@@ -146,6 +154,10 @@ export function SiteTable({
   const [sortKey, setSortKey] = useState<SortKey>("duration");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [picked, setPicked] = useState<Record<string, true>>({});
+  const [sent, setSent] = useState<Record<string, IndexSent>>(() => readIndexSent());
+  const [submitting, setSubmitting] = useState(false);
+  const [note, setNote] = useState<{ tone: "ok" | "down"; text: string } | null>(null);
   const compact = useMediaQuery(MOBILE_TABLE);
   const wrapRef = useRef<HTMLElement>(null);
   const showIndex = hasIndexColumn(rows);
@@ -157,6 +169,21 @@ export function SiteTable({
     () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
     [rows, query, filter, sortKey, sortDir],
   );
+  const sentUrls = useMemo(() => new Set(Object.keys(sent)), [sent]);
+  const eligibleBySite = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of visible) {
+      map.set(row.url, indexSubmitUrls(row, sentUrls, isFleetDrop(row, fleetHosts)));
+    }
+    return map;
+  }, [visible, sentUrls, fleetHosts]);
+  const eligibleUrls = useMemo(() => [...eligibleBySite.values()].flat(), [eligibleBySite]);
+  const pickedUrls = useMemo(
+    () => eligibleUrls.filter((url) => picked[url]),
+    [eligibleUrls, picked],
+  );
+  const allPicked = eligibleUrls.length > 0 && pickedUrls.length === eligibleUrls.length;
+  const somePicked = pickedUrls.length > 0;
 
   useEffect(() => {
     if (!jumpToken) return;
@@ -178,6 +205,67 @@ export function SiteTable({
 
   function toggleRow(url: string) {
     setExpanded((prev) => ({ ...prev, [url]: !prev[url] }));
+  }
+
+  function togglePage(url: string) {
+    setPicked((prev) => {
+      const next = { ...prev };
+      if (next[url]) delete next[url];
+      else next[url] = true;
+      return next;
+    });
+  }
+
+  function toggleSite(urls: string[]) {
+    setPicked((prev) => {
+      const next = { ...prev };
+      const allOn = urls.length > 0 && urls.every((url) => next[url]);
+      if (allOn) {
+        for (const url of urls) delete next[url];
+      } else {
+        for (const url of urls) next[url] = true;
+      }
+      return next;
+    });
+  }
+
+  function toggleAllPicked() {
+    setPicked((prev) => {
+      const next = { ...prev };
+      const allOn = eligibleUrls.length > 0 && eligibleUrls.every((url) => next[url]);
+      if (allOn) {
+        for (const url of eligibleUrls) delete next[url];
+      } else {
+        for (const url of eligibleUrls) next[url] = true;
+      }
+      return next;
+    });
+  }
+
+  async function send(urls: string[]) {
+    if (!urls.length || submitting) return;
+    const reserve = urls.length * INDEX_SUBMIT_TOKENS;
+    const agreed = window.confirm(
+      `Отправить ${indexSubmitCountLabel(urls.length)} в SpeedyIndex?\n\nПока задача в работе, на балансе должно быть ${reserve} токенов. Спишутся только страницы, которые Google проиндексирует.`,
+    );
+    if (!agreed) return;
+    setSubmitting(true);
+    setNote(null);
+    try {
+      const result = await requestIndexSubmit(urls);
+      if (result.ok) {
+        const accepted = result.accepted.length ? result.accepted : urls;
+        setSent(rememberIndexSent(accepted, result.taskId ?? ""));
+        setPicked({});
+        setNote({ tone: "ok", text: result.message });
+      } else {
+        setNote({ tone: "down", text: result.message });
+      }
+    } catch {
+      setNote({ tone: "down", text: "Не удалось связаться с сервером панели" });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const colSpan =
@@ -229,6 +317,14 @@ export function SiteTable({
           onChange={onFilterChange}
         />
         {gscWindow ? <p className="gsc-range">Google {gscWindow}</p> : null}
+        {showIndex ? (
+          <div className="index-submit">
+            <ShinyButton disabled={pickedUrls.length === 0 || submitting} onClick={() => void send(pickedUrls)}>
+              {submitting ? "Отправляю…" : pickedUrls.length ? `В индекс · ${pickedUrls.length}` : "В индекс"}
+            </ShinyButton>
+            {note ? <p className={`index-submit-note ${note.tone}`}>{note.text}</p> : null}
+          </div>
+        ) : null}
         {compact ? (
           <MenuSelect
             label="сортировка"
@@ -255,7 +351,20 @@ export function SiteTable({
         <table>
           <thead>
             <tr>
-              <th>состояние</th>
+              <th>
+                <span className="status-head">
+                  {showIndex ? (
+                    <IndexPick
+                      checked={allPicked}
+                      indeterminate={somePicked}
+                      disabled={eligibleUrls.length === 0}
+                      label="Выбрать все страницы не в индексе"
+                      onChange={toggleAllPicked}
+                    />
+                  ) : null}
+                  состояние
+                </span>
+              </th>
               <SortTh
                 label="хост"
                 active={sortKey === "host"}
@@ -356,12 +465,50 @@ export function SiteTable({
                 colSpan={colSpan}
                 expanded={Boolean(expanded[row.url])}
                 onToggle={() => toggleRow(row.url)}
+                pageUrls={eligibleBySite.get(row.url) ?? []}
+                picked={picked}
+                sentUrls={sentUrls}
+                submitting={submitting}
+                onPickSite={(urls) => toggleSite(urls)}
+                onTogglePage={togglePage}
               />
             ))}
           </tbody>
         </table>
       </div>
     </section>
+  );
+}
+
+function IndexPick({
+  checked,
+  indeterminate = false,
+  disabled,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  disabled: boolean;
+  label: string;
+  onChange: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate && !checked;
+  }, [indeterminate, checked]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      className="index-pick"
+      checked={checked}
+      disabled={disabled}
+      aria-label={label}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+      onChange={onChange}
+    />
   );
 }
 
@@ -416,6 +563,12 @@ function SiteRowBlock({
   colSpan,
   expanded,
   onToggle,
+  pageUrls,
+  picked,
+  sentUrls,
+  submitting,
+  onPickSite,
+  onTogglePage,
 }: {
   row: SiteRow;
   fleetHosts: Set<string>;
@@ -425,6 +578,12 @@ function SiteRowBlock({
   colSpan: number;
   expanded: boolean;
   onToggle: () => void;
+  pageUrls: string[];
+  picked: Readonly<Record<string, true>>;
+  sentUrls: ReadonlySet<string>;
+  submitting: boolean;
+  onPickSite: (urls: string[]) => void;
+  onTogglePage: (url: string) => void;
 }) {
   const nsFail = nsReason(row);
   const match = nsMatchOf(row);
@@ -445,6 +604,8 @@ function SiteRowBlock({
               ? "index-warn"
               : "";
   const canExpand = showIndex && (row.index != null || isIndexSkip(row));
+  const pickedCount = pageUrls.filter((url) => picked[url]).length;
+  const siteChecked = pageUrls.length > 0 && pickedCount === pageUrls.length;
 
   return (
     <Fragment>
@@ -466,6 +627,19 @@ function SiteRowBlock({
       >
         <td data-label="состояние">
           <span className="status-lead">
+            {showIndex ? (
+              <IndexPick
+                checked={siteChecked}
+                indeterminate={pickedCount > 0 && !siteChecked}
+                disabled={pageUrls.length === 0 || submitting}
+                label={
+                  pageUrls.length
+                    ? `Выбрать ${indexSubmitCountLabel(pageUrls.length)} ${hostnameOf(row.url)}`
+                    : `Нет страниц вне индекса: ${hostnameOf(row.url)}`
+                }
+                onChange={() => onPickSite(pageUrls)}
+              />
+            ) : null}
             {canExpand ? (
               <span className={expanded ? "row-expand is-open" : "row-expand"} aria-hidden>
                 <span className="row-expand-label">view</span>
@@ -517,7 +691,14 @@ function SiteRowBlock({
       {expanded && canExpand ? (
         <tr className="index-detail-row">
           <td colSpan={colSpan}>
-            <SiteIndexDetail row={row} isDrop={drop} />
+            <SiteIndexDetail
+              row={row}
+              isDrop={drop}
+              sentUrls={sentUrls}
+              picked={picked}
+              busy={submitting}
+              onTogglePage={onTogglePage}
+            />
           </td>
         </tr>
       ) : null}
