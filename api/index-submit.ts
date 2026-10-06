@@ -169,7 +169,3 @@ async function handle(request: Request): Promise<Response> {
 export function POST(request: Request): Promise<Response> {
   return handle(request);
 }
-
-export default function handler(request: Request): Promise<Response> {
-  return handle(request);
-}
