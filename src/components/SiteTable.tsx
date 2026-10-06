@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Search } from "lucide-react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { ShinyButton } from "./ShinyButton";
 import { formatMs } from "../lib/format";
@@ -294,20 +295,26 @@ export function SiteTable({
       }}
     >
       <div className="toolbar">
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={
-            showSubfolder
-              ? "Поиск по домену, NS, индексу или подпапке…"
-              : "Поиск по домену, NS или индексу…"
-          }
-          aria-label={
-            showSubfolder
-              ? "Поиск по домену, NS, индексу или подпапке"
-              : "Поиск по домену, NS или индексу"
-          }
-        />
+        <p className="table-count">
+          {visible.length} из {rows.length}
+        </p>
+        <label className="site-search">
+          <Search size={16} aria-hidden />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={
+              showSubfolder
+                ? "Поиск по домену, NS, индексу или подпапке…"
+                : "Поиск по домену, NS или индексу…"
+            }
+            aria-label={
+              showSubfolder
+                ? "Поиск по домену, NS, индексу или подпапке"
+                : "Поиск по домену, NS или индексу"
+            }
+          />
+        </label>
         <MenuSelect
           label="фильтр"
           value={filter}
@@ -640,17 +647,9 @@ function SiteRowBlock({
                 onChange={() => onPickSite(pageUrls)}
               />
             ) : null}
-            {canExpand ? (
-              <span className={expanded ? "row-expand is-open" : "row-expand"} aria-hidden>
-                <span className="row-expand-label">view</span>
-                <span className="row-expand-hint" />
-              </span>
-            ) : (
-              <span className="row-expand is-placeholder" aria-hidden>
-                <span className="row-expand-label">view</span>
-                <span className="row-expand-hint" />
-              </span>
-            )}
+            <span className={expanded ? "row-expand is-open" : canExpand ? "row-expand" : "row-expand is-placeholder"} aria-hidden>
+              <ChevronDown size={16} />
+            </span>
             <span
               className={`status-dot ${up ? "ok" : "down"}`}
               aria-label={up ? "живой" : "нет ответа"}

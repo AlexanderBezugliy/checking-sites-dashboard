@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { Activity, Search, ServerCrash, ShieldAlert } from "lucide-react";
 import { formatKyiv, relativeFromNow } from "../lib/format";
 import {
   collectNotIndexedPages,
@@ -43,84 +45,47 @@ export function KpiGrid({
 
   return (
     <section className="summary reveal">
-      <article className={serverDown ? "summary-health is-down" : "summary-health is-ok"}>
-        <div className="summary-health-main">
-          <p className="summary-frac">
-            <b>{metrics.alive}</b>
-            <span> / {metrics.total}</span>
-          </p>
-          <ul className="summary-flags">
-            <li>
-              <button
-                type="button"
-                className={flagClass(false, filter === "all")}
-                onClick={() => onFilter("all")}
-              >
-                Все сайты <b>{metrics.total}</b>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className={flagClass(metrics.failed > 0, filter === "down")}
-                onClick={() => onFilter("down")}
-              >
-                Ответ сервера <b>{metrics.failed}</b>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className={flagClass(metrics.indexIssues > 0, filter === "indexissue")}
-                onClick={() => onFilter("indexissue")}
-              >
-                Индексация <b>{metrics.indexIssues}</b>
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className={flagClass(metrics.sslLive > 0, filter === "ssl")}
-                onClick={() => onFilter("ssl")}
-              >
-                SSL <b>{metrics.sslLive}</b>
-              </button>
-            </li>
-          </ul>
-        </div>
-        <div className="summary-health-side">
-          <div className="summary-meta">
-            <div>
-              <span className="label">Последняя проверка</span>
-              <strong>
-                {formatKyiv(payload.last_update)}
-                <em> · {relativeFromNow(payload.last_update)}</em>
-              </strong>
-            </div>
-            {payload.index_last_update ? (
-              <div>
-                <span className="label">Индекс обновлён</span>
-                <strong>
-                  {formatKyiv(payload.index_last_update)}
-                  <em> · {relativeFromNow(payload.index_last_update)}</em>
-                </strong>
-              </div>
-            ) : null}
-          </div>
-          <div className="summary-export">
-            <ShinyButton
-              className="btn-export-index"
-              onClick={downloadNotIndexed}
-              disabled={!notIndexed.length}
-            >
-              {notIndexed.length
-                ? `Скачать не в индексе · ${notIndexed.length}`
-                : "Скачать не в индексе"}
-            </ShinyButton>
-          </div>
-        </div>
-      </article>
+      <div className="kpi-grid">
+        <KpiCard
+          icon={<Activity size={18} />}
+          label="Сайты"
+          value={String(metrics.alive)}
+          hint={`/ ${metrics.total}`}
+          tone="ok"
+          active={filter === "all"}
+          alert={false}
+          onClick={() => onFilter("all")}
+        />
+        <KpiCard
+          icon={<ServerCrash size={18} />}
+          label="Ответ сервера"
+          value={String(metrics.failed)}
+          tone="down"
+          active={filter === "down"}
+          alert={serverDown}
+          onClick={() => onFilter("down")}
+        />
+        <KpiCard
+          icon={<Search size={18} />}
+          label="Индексация"
+          value={String(metrics.indexIssues)}
+          tone="warn"
+          active={filter === "indexissue"}
+          alert={metrics.indexIssues > 0}
+          onClick={() => onFilter("indexissue")}
+        />
+        <KpiCard
+          icon={<ShieldAlert size={18} />}
+          label="SSL"
+          value={String(metrics.sslLive)}
+          tone="warn"
+          active={filter === "ssl"}
+          alert={metrics.sslLive > 0}
+          onClick={() => onFilter("ssl")}
+        />
+      </div>
 
+      <div className="dash-lower">
       <article className="summary-mix">
         <div className="mix-rows">
           <MixRow
@@ -163,7 +128,71 @@ export function KpiGrid({
           ) : null}
         </div>
       </article>
+      <aside className="summary-side">
+        <div className="summary-meta">
+          <div>
+            <span className="label">Последняя проверка</span>
+            <strong>
+              {formatKyiv(payload.last_update)}
+              <em> · {relativeFromNow(payload.last_update)}</em>
+            </strong>
+          </div>
+          {payload.index_last_update ? (
+            <div>
+              <span className="label">Индекс обновлён</span>
+              <strong>
+                {formatKyiv(payload.index_last_update)}
+                <em> · {relativeFromNow(payload.index_last_update)}</em>
+              </strong>
+            </div>
+          ) : null}
+        </div>
+        <ShinyButton
+          className="btn-export-index"
+          onClick={downloadNotIndexed}
+          disabled={!notIndexed.length}
+        >
+          {notIndexed.length
+            ? `Скачать не в индексе · ${notIndexed.length}`
+            : "Скачать не в индексе"}
+        </ShinyButton>
+      </aside>
+      </div>
     </section>
+  );
+}
+
+function KpiCard({
+  icon,
+  label,
+  value,
+  hint,
+  tone,
+  active,
+  alert,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  tone: "ok" | "down" | "warn";
+  active: boolean;
+  alert: boolean;
+  onClick: () => void;
+}) {
+  const classes = ["kpi-card", `is-${tone}`];
+  if (active) classes.push("is-active");
+  if (alert) classes.push("is-alert");
+  return (
+    <button type="button" className={classes.join(" ")} onClick={onClick}>
+      <span className="kpi-icon">{icon}</span>
+      <span className="kpi-label">{label}</span>
+      <span className="kpi-value">
+        {value}
+        {hint ? <small>{hint}</small> : null}
+      </span>
+    </button>
   );
 }
 
@@ -200,7 +229,3 @@ function MixRow({
   );
 }
 
-function flagClass(problem: boolean, active: boolean): string {
-  const tone = problem ? "is-down" : "is-ok";
-  return active ? `${tone} is-active` : tone;
-}

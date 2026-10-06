@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KpiGrid } from "./components/KpiGrid";
 import { SiteTable } from "./components/SiteTable";
 import { useFleetStatus } from "./hooks/useFleetStatus";
+import { AppShell } from "./shell/AppShell";
 import type { TableFilter } from "./types";
 
 export default function App() {
@@ -15,7 +16,7 @@ export default function App() {
   }
 
   return (
-    <div className="shell">
+    <AppShell filter={filter} metrics={metrics} onFilter={showInTable}>
       {error ? <p className="banner">{error}</p> : null}
 
       {metrics && payload ? (
@@ -38,6 +39,6 @@ export default function App() {
       ) : loading ? (
         <p className="empty">Загружаю статус флота…</p>
       ) : null}
-    </div>
+    </AppShell>
   );
 }
