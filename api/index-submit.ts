@@ -1,4 +1,4 @@
-import { submitIndexUrls } from "../src/lib/speedyindex";
+import { submitIndexUrls } from "../src/lib/speedyindex.ts";
 
 const REJECTED = {
   ok: false,
