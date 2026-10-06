@@ -53,13 +53,14 @@ describe("index submit selection", () => {
     expect(INDEX_SUBMIT_TOKENS).toBe(SPEEDYINDEX_TOKENS_PER_URL);
   });
 
-  it("takes only pages that are absent from the index", () => {
+  it("takes pages absent from the index, including a noindex tag", () => {
     expect(indexSubmitPages(sample).map((page) => page.url)).toEqual([
       "https://zeta.gb.net/en-gb/bonuses/",
+      "https://zeta.gb.net/en-gb/login/",
     ]);
   });
 
-  it("skips a site marked noindex, a drop, and URLs already sent", () => {
+  it("keeps a noindex site selectable, and skips a drop and URLs already sent", () => {
     const noindex = row({
       url: "https://alpha.it.com",
       status: 200,
@@ -69,11 +70,13 @@ describe("index submit selection", () => {
         pages: [{ url: "https://alpha.it.com/", slot: "home", indexed: false }],
       },
     });
-    expect(indexSubmitPages(noindex)).toEqual([]);
+    expect(indexSubmitPages(noindex).map((page) => page.url)).toEqual([
+      "https://alpha.it.com/",
+    ]);
     expect(indexSubmitPages(sample, true)).toEqual([]);
-    expect(indexSubmitUrls(sample, new Set(["https://zeta.gb.net/en-gb/bonuses/"]))).toEqual(
-      [],
-    );
+    expect(indexSubmitUrls(sample, new Set(["https://zeta.gb.net/en-gb/bonuses/"]))).toEqual([
+      "https://zeta.gb.net/en-gb/login/",
+    ]);
   });
 
   it("declines the page count for the confirm dialog", () => {

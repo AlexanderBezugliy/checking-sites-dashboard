@@ -6,13 +6,12 @@ export const INDEX_SUBMIT_TOKENS = 100;
 
 export function isIndexSubmitPage(page: IndexPage): boolean {
   if (!isCsvIndexSlot(page.slot) || !page.url) return false;
-  if (page.indexed !== false || page.stale === true) return false;
-  return !String(page.coverageState || "").toLowerCase().includes("noindex");
+  return page.indexed === false && page.stale !== true;
 }
 
-/** Страницы, которые можно отправить: не в индексе, без noindex и без stale. Дроп не отправляем. */
+/** Страницы со статусом «нет», включая noindex. Stale и дроп не отправляем. */
 export function indexSubmitPages(row: SiteRow, isDrop = false): IndexPage[] {
-  if (isDrop || isIndexSkip(row) || row.index?.noindex === true) return [];
+  if (isDrop || isIndexSkip(row)) return [];
   return indexReportPages(row).filter(isIndexSubmitPage);
 }
 
