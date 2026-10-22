@@ -1309,10 +1309,12 @@ table.index-pages th {
 
 .gsc-period-bar {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 12px 14px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 14px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -1331,8 +1333,8 @@ table.index-pages th {
     no-repeat right 12px center;
   color: var(--text);
   border: 1px solid var(--line);
-  min-height: 40px;
-  padding: 8px 36px 8px 12px;
+  min-height: 32px;
+  padding: 4px 32px 4px 10px;
   font: inherit;
   font-weight: 500;
   cursor: pointer;
