@@ -41,6 +41,7 @@ import {
   GSC_PERIODS,
   gscFleetWindow,
   gscPeriodDays,
+  gscPeriodSentence,
   gscTitle,
   positionFoot,
   projectGsc,
@@ -294,7 +295,7 @@ export function SiteTable({
   }
   const sortChoices = SORT_OPTIONS.filter((option) => !hiddenSorts.has(option.key));
   const gscWindow = gscFleetWindow(viewed);
-  const gscPeriodLabel = GSC_PERIODS.find((item) => item.id === gscPeriod)?.label ?? "14 дней";
+  const gscSentence = gscPeriodSentence(viewed.find((row) => row.gsc?.start && row.gsc?.end)?.gsc);
   const showGscPeriod = rows.some((row) => row.gsc != null);
   const sortLabel = sortChoices.find((option) => option.key === sortKey)?.label ?? sortKey;
   const activeFilter = filterCaption(filter, metrics);
@@ -339,16 +340,6 @@ export function SiteTable({
           groups={filterGroups(metrics, showIndex)}
           onChange={onFilterChange}
         />
-        {showGscPeriod ? (
-          <MenuSelect
-            label="период Google"
-            value={gscPeriod}
-            valueLabel={gscPeriodLabel}
-            groups={[{ id: "gsc", options: GSC_PERIODS.map((item) => ({ id: item.id, label: item.label })) }]}
-            onChange={setGscPeriod}
-          />
-        ) : null}
-        {gscWindow ? <p className="gsc-range">Google {gscWindow}</p> : null}
         {showIndex ? (
           <div className="index-submit">
             <ShinyButton disabled={pickedUrls.length === 0 || submitting} onClick={() => void send(pickedUrls)}>
@@ -378,6 +369,26 @@ export function SiteTable({
           />
         ) : null}
       </div>
+      {showGscPeriod ? (
+        <div className="gsc-period-bar">
+          <label className="gsc-period">
+            <span>Показы и клики за</span>
+            <select
+              value={gscPeriod}
+              aria-label="Период показов и кликов"
+              onChange={(event) => setGscPeriod(event.target.value as GscPeriodId)}
+            >
+              {GSC_PERIODS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {gscSentence ? <p className="gsc-period-dates">{gscSentence}</p> : null}
+          {gscWindow ? <p className="gsc-range sr-only">{gscWindow}</p> : null}
+        </div>
+      ) : null}
 
       <div className="table-scroll">
         <table>

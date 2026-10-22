@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countFoot, gscWasAbsent, mergeGsc, payloadHasGsc, percentChange, positionChange, positionFoot, projectGsc, shareFoot, sumGscDays } from "../src/lib/gsc";
+import { countFoot, formatGscRange, gscPeriodSentence, gscWasAbsent, mergeGsc, payloadHasGsc, percentChange, positionChange, positionFoot, projectGsc, shareFoot, sumGscDays } from "../src/lib/gsc";
 import type { SiteRow, StatusPayload } from "../src/types";
 
 describe("gsc deltas", () => {
@@ -77,5 +77,18 @@ describe("gsc deltas", () => {
     expect(week?.prev_clicks).toBe(5);
     expect(projectGsc({ clicks: 35, impressions: 100, start: "2026-09-08", end: "2026-09-21" }, 14)?.clicks).toBe(35);
     expect(projectGsc({ clicks: 35, impressions: 100, end: "2026-09-21" }, 7)?.impressions).toBeNull();
+  });
+
+  it("writes the period as dates a new reader can follow", () => {
+    expect(formatGscRange("2026-10-06", "2026-10-19")).toBe("6–19 октября");
+    expect(formatGscRange("2026-09-22", "2026-10-05")).toBe("22 сентября – 5 октября");
+    expect(
+      gscPeriodSentence({
+        start: "2026-10-06",
+        end: "2026-10-19",
+        prev_start: "2026-09-22",
+        prev_end: "2026-10-05",
+      }),
+    ).toBe("6–19 октября. Сравнение с 22 сентября – 5 октября.");
   });
 });

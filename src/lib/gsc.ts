@@ -226,6 +226,48 @@ export function gscWasAbsent(info: GscInfo): boolean {
 }
 
 /** Окно из монитора: даты текущего периода против предыдущего. */
+const MONTHS = [
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
+];
+
+function splitDay(iso: string): { y: number; m: number; d: number } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return null;
+  return { y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) };
+}
+
+/** «6–19 октября» или «22 сентября – 5 октября». */
+export function formatGscRange(start: string, end: string): string {
+  const from = splitDay(start);
+  const to = splitDay(end);
+  if (!from || !to) return `${start} — ${end}`;
+  if (from.y === to.y && from.m === to.m) {
+    return `${from.d}–${to.d} ${MONTHS[to.m - 1]}`;
+  }
+  const fromText = `${from.d} ${MONTHS[from.m - 1]}${from.y === to.y ? "" : ` ${from.y}`}`;
+  const toText = `${to.d} ${MONTHS[to.m - 1]}${from.y === to.y ? "" : ` ${to.y}`}`;
+  return `${fromText} – ${toText}`;
+}
+
+/** Подпись под выбором периода: текущие даты и такой же прошлый отрезок. */
+export function gscPeriodSentence(info: GscInfo | null | undefined): string {
+  if (!info?.start || !info?.end) return "";
+  const current = formatGscRange(info.start, info.end);
+  if (!info.prev_start || !info.prev_end) return `${current}.`;
+  return `${current}. Сравнение с ${formatGscRange(info.prev_start, info.prev_end)}.`;
+}
+
 export function gscWindowLabel(info: GscInfo | null | undefined): string {
   if (!info) return "";
   const range = info.start && info.end ? `${info.start} — ${info.end}` : "";

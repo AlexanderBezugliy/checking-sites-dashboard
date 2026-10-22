@@ -1307,6 +1307,60 @@ table.index-pages th {
   font-size: 12px;
 }
 
+.gsc-period-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.gsc-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.gsc-period select {
+  appearance: none;
+  background: var(--bg)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'><path d='M1.5 1.5 L7 7 L12.5 1.5' fill='none' stroke='%239ca3af' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+    no-repeat right 12px center;
+  color: var(--text);
+  border: 1px solid var(--line);
+  min-height: 40px;
+  padding: 8px 36px 8px 12px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.gsc-period select:focus {
+  outline: none;
+  border-color: var(--muted);
+}
+
+.gsc-period-dates {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .gsc-head {
   text-transform: none;
   letter-spacing: 0;
