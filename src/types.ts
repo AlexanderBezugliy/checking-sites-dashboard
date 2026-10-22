@@ -156,6 +156,12 @@ export type GscInfo = {
   checked_at?: string | null;
   error?: string | null;
   stale?: true;
+  /**
+   * Ряд по дням: `[дата, клики, показы, место]`.
+   * Место за сутки уже среднее. Пустых суток нет.
+   * Нет ключа — снимок только с готовыми суммами.
+   */
+  days?: [string, number, number, number | null][] | null;
 };
 
 export type StatusPayload = {

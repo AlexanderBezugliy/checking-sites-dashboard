@@ -38,11 +38,15 @@ import {
   formatGscCount,
   formatGscCtr,
   formatGscPosition,
+  GSC_PERIODS,
   gscFleetWindow,
+  gscPeriodDays,
   gscTitle,
   positionFoot,
+  projectGsc,
   shareFoot,
   type GscFoot,
+  type GscPeriodId,
 } from "../lib/gsc";
 import { filterAndSortRows, hasIndexColumn, nextSort } from "../lib/table";
 import {
@@ -159,16 +163,26 @@ export function SiteTable({
   const [sent, setSent] = useState<Record<string, IndexSent>>(() => readIndexSent());
   const [submitting, setSubmitting] = useState(false);
   const [note, setNote] = useState<{ tone: "ok" | "down"; text: string } | null>(null);
+  const [gscPeriod, setGscPeriod] = useState<GscPeriodId>("14");
   const compact = useMediaQuery(MOBILE_TABLE);
   const wrapRef = useRef<HTMLElement>(null);
   const showIndex = hasIndexColumn(rows);
   const showSubfolder = hasSubfolderColumn(rows);
   const showCloak = hasCloakColumn(rows);
   const fleetHosts = useMemo(() => fleetHostSet(rows), [rows]);
+  const periodDays = gscPeriodDays(gscPeriod);
+  const viewed = useMemo(
+    () =>
+      rows.map((row) => ({
+        ...row,
+        gsc: projectGsc(row.gsc, periodDays),
+      })),
+    [rows, periodDays],
+  );
 
   const visible = useMemo(
-    () => filterAndSortRows(rows, query, filter, sortKey, sortDir),
-    [rows, query, filter, sortKey, sortDir],
+    () => filterAndSortRows(viewed, query, filter, sortKey, sortDir),
+    [viewed, query, filter, sortKey, sortDir],
   );
   const sentUrls = useMemo(() => new Set(Object.keys(sent)), [sent]);
   const eligibleBySite = useMemo(() => {
@@ -279,7 +293,9 @@ export function SiteTable({
     hiddenSorts.add("glue");
   }
   const sortChoices = SORT_OPTIONS.filter((option) => !hiddenSorts.has(option.key));
-  const gscWindow = gscFleetWindow(rows);
+  const gscWindow = gscFleetWindow(viewed);
+  const gscPeriodLabel = GSC_PERIODS.find((item) => item.id === gscPeriod)?.label ?? "14 дней";
+  const showGscPeriod = rows.some((row) => row.gsc != null);
   const sortLabel = sortChoices.find((option) => option.key === sortKey)?.label ?? sortKey;
   const activeFilter = filterCaption(filter, metrics);
 
@@ -323,6 +339,15 @@ export function SiteTable({
           groups={filterGroups(metrics, showIndex)}
           onChange={onFilterChange}
         />
+        {showGscPeriod ? (
+          <MenuSelect
+            label="период Google"
+            value={gscPeriod}
+            valueLabel={gscPeriodLabel}
+            groups={[{ id: "gsc", options: GSC_PERIODS.map((item) => ({ id: item.id, label: item.label })) }]}
+            onChange={setGscPeriod}
+          />
+        ) : null}
         {gscWindow ? <p className="gsc-range">Google {gscWindow}</p> : null}
         {showIndex ? (
           <div className="index-submit">
@@ -720,12 +745,13 @@ function GscValue({ value, foot }: { value: string; foot: GscFoot }) {
 function GscCells({ info }: { info: GscInfo | null | undefined }) {
   const title = gscTitle(info);
   if (!info || info.impressions == null) {
+    const mark = info?.error ? "сбой" : "—";
     return (
       <>
-        <td data-label="клики" className="gsc-cell muted" title={title}>—</td>
-        <td data-label="показы" className="gsc-cell muted" title={title}>—</td>
-        <td data-label="место" className="gsc-cell muted" title={title}>—</td>
-        <td data-label="доля кликов" className="gsc-cell muted" title={title}>—</td>
+        <td data-label="клики" className="gsc-cell muted" title={title}>{mark}</td>
+        <td data-label="показы" className="gsc-cell muted" title={title}>{mark}</td>
+        <td data-label="место" className="gsc-cell muted" title={title}>{mark}</td>
+        <td data-label="доля кликов" className="gsc-cell muted" title={title}>{mark}</td>
       </>
     );
   }

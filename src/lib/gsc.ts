@@ -16,6 +16,116 @@ export type GscFoot = {
 
 const nf = new Intl.NumberFormat("ru-RU");
 
+export type GscPeriodId = "7" | "14" | "28" | "90" | "180";
+
+export const GSC_PERIODS: { id: GscPeriodId; days: number; label: string }[] = [
+  { id: "7", days: 7, label: "7 дней" },
+  { id: "14", days: 14, label: "14 дней" },
+  { id: "28", days: 28, label: "28 дней" },
+  { id: "90", days: 90, label: "3 месяца" },
+  { id: "180", days: 180, label: "6 месяцев" },
+];
+
+export function gscPeriodDays(id: GscPeriodId): number {
+  return GSC_PERIODS.find((item) => item.id === id)?.days ?? 14;
+}
+
+function addDays(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  utc.setUTCDate(utc.getUTCDate() + days);
+  return utc.toISOString().slice(0, 10);
+}
+
+type GscDay = [string, number, number, number | null];
+
+function isGscDay(value: unknown): value is GscDay {
+  return Array.isArray(value) && typeof value[0] === "string";
+}
+
+/** Клики, показы и место с весом по показам, как в Search Console. */
+export function sumGscDays(
+  days: GscInfo["days"],
+  start: string,
+  end: string,
+): {
+  clicks: number;
+  impressions: number;
+  ctr: number | null;
+  position: number | null;
+} {
+  let clicks = 0;
+  let impressions = 0;
+  let posSum = 0;
+  let posWeight = 0;
+  for (const point of days ?? []) {
+    if (!isGscDay(point)) continue;
+    const [day, rawClicks, rawImpr, rawPos] = point;
+    if (day < start || day > end) continue;
+    const dayClicks = Number(rawClicks) || 0;
+    const dayImpr = Number(rawImpr) || 0;
+    clicks += dayClicks;
+    impressions += dayImpr;
+    if (typeof rawPos === "number" && Number.isFinite(rawPos) && dayImpr > 0) {
+      posSum += rawPos * dayImpr;
+      posWeight += dayImpr;
+    }
+  }
+  return {
+    clicks,
+    impressions,
+    ctr: impressions ? clicks / impressions : null,
+    position: posWeight ? Math.round((posSum / posWeight) * 100) / 100 : null,
+  };
+}
+
+/**
+ * Подменяет суммы в `gsc` на выбранную длину, конец — `info.end`.
+ * Без ряда по дням 14-дневный снимок остаётся как есть.
+ */
+export function projectGsc(
+  info: GscInfo | null | undefined,
+  periodDays: number,
+): GscInfo | null | undefined {
+  if (!info) return info;
+  const end = info.end;
+  if (!info.days?.length || !end) {
+    if (periodDays === 14) return info;
+    return {
+      ...info,
+      clicks: null,
+      impressions: null,
+      ctr: null,
+      position: null,
+      prev_clicks: null,
+      prev_impressions: null,
+      prev_ctr: null,
+      prev_position: null,
+      error: info.error || "Для этого периода нет ряда по дням",
+    };
+  }
+  const start = addDays(end, -(periodDays - 1));
+  const prevEnd = addDays(start, -1);
+  const prevStart = addDays(prevEnd, -(periodDays - 1));
+  const current = sumGscDays(info.days, start, end);
+  const prev = sumGscDays(info.days, prevStart, prevEnd);
+  return {
+    ...info,
+    start,
+    end,
+    prev_start: prevStart,
+    prev_end: prevEnd,
+    clicks: current.clicks,
+    impressions: current.impressions,
+    ctr: current.ctr,
+    position: current.position,
+    prev_clicks: prev.clicks,
+    prev_impressions: prev.impressions,
+    prev_ctr: prev.ctr,
+    prev_position: prev.position,
+  };
+}
+
 export function formatGscCount(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "—";
   return nf.format(Math.round(value));

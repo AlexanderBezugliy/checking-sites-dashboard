@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countFoot, gscWasAbsent, mergeGsc, payloadHasGsc, percentChange, positionChange, positionFoot, shareFoot } from "../src/lib/gsc";
+import { countFoot, gscWasAbsent, mergeGsc, payloadHasGsc, percentChange, positionChange, positionFoot, projectGsc, shareFoot, sumGscDays } from "../src/lib/gsc";
 import type { SiteRow, StatusPayload } from "../src/types";
 
 describe("gsc deltas", () => {
@@ -50,5 +50,32 @@ describe("gsc deltas", () => {
     expect(merged.data[0].gsc?.clicks).toBe(0);
     expect(merged.data[0].gsc?.impressions).toBe(10);
     expect(merged.gsc_last_update).toBe("2026-09-24T13:45:37.955Z");
+  });
+
+  it("sums a chosen period from daily rows, weighting position by impressions", () => {
+    const info = {
+      end: "2026-10-19",
+      start: "2026-10-06",
+      clicks: 99,
+      impressions: 99,
+      days: [
+        ["2026-10-18", 1, 100, 10],
+        ["2026-10-19", 1, 300, 20],
+        ["2026-10-12", 5, 50, 4],
+      ] as [string, number, number, number | null][],
+    };
+    expect(sumGscDays(info.days, "2026-10-18", "2026-10-19")).toMatchObject({
+      clicks: 2,
+      impressions: 400,
+      position: 17.5,
+    });
+    const week = projectGsc(info, 7);
+    expect(week?.start).toBe("2026-10-13");
+    expect(week?.end).toBe("2026-10-19");
+    expect(week?.clicks).toBe(2);
+    expect(week?.prev_start).toBe("2026-10-06");
+    expect(week?.prev_clicks).toBe(5);
+    expect(projectGsc({ clicks: 35, impressions: 100, start: "2026-09-08", end: "2026-09-21" }, 14)?.clicks).toBe(35);
+    expect(projectGsc({ clicks: 35, impressions: 100, end: "2026-09-21" }, 7)?.impressions).toBeNull();
   });
 });
